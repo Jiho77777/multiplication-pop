@@ -75,33 +75,32 @@ function Index() {
 
         <div
           key={problem?.key ?? "empty"}
-          className="relative w-full max-w-md animate-in fade-in zoom-in-95 duration-300"
+          className="relative w-full max-w-2xl animate-in fade-in zoom-in-95 duration-300"
         >
           <div
-            className="relative rounded-[2rem] border-2 border-foreground bg-card p-10 text-center"
+            className="relative rounded-[2rem] border-2 border-foreground bg-card p-12 text-center md:p-16"
             style={{ boxShadow: "var(--shadow-pop)" }}
           >
             {problem ? (
               <>
-                <p className="mb-4 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                <p className="mb-6 text-xs font-bold uppercase tracking-widest text-muted-foreground">
                   문제
                 </p>
-                <div className="flex items-center justify-center gap-3 text-6xl font-black md:text-7xl">
+                <div className="flex flex-wrap items-center justify-center gap-4 text-8xl font-black leading-none md:text-9xl">
                   <span>{problem.a}</span>
                   <span className="text-primary">×</span>
                   <span>{problem.b}</span>
                   <span className="text-muted-foreground">=</span>
                   <span
                     className={
-                      showAnswer
-                        ? "text-primary transition-opacity"
-                        : "text-muted-foreground"
+                      showAnswer ? "text-primary transition-opacity" : "text-muted-foreground"
                     }
                   >
                     {showAnswer ? problem.a * problem.b : "?"}
                   </span>
                 </div>
               </>
+
             ) : (
               <div className="flex flex-col items-center gap-3 py-4">
                 <Dice5 className="h-14 w-14 text-primary" />
