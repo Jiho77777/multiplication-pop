@@ -18,13 +18,35 @@ function Index() {
   const [problem, setProblem] = useState<Problem | null>(null);
   const [showAnswer, setShowAnswer] = useState(false);
   const [count, setCount] = useState(0);
+  const [spinning, setSpinning] = useState(false);
+  const [spinA, setSpinA] = useState(2);
+  const [spinB, setSpinB] = useState(2);
 
   const generate = () => {
+    if (spinning) return;
+    setShowAnswer(false);
+    setSpinning(true);
     const a = Math.floor(Math.random() * 8) + 2;
     const b = Math.floor(Math.random() * 8) + 2;
-    setProblem({ a, b, key: Date.now() });
-    setShowAnswer(false);
-    setCount((c) => c + 1);
+
+    const start = Date.now();
+    const duration = 1400;
+    const tick = () => {
+      const elapsed = Date.now() - start;
+      setSpinA(Math.floor(Math.random() * 8) + 2);
+      setSpinB(Math.floor(Math.random() * 8) + 2);
+      if (elapsed < duration) {
+        const delay = 50 + (elapsed / duration) * 180;
+        setTimeout(tick, delay);
+      } else {
+        setSpinA(a);
+        setSpinB(b);
+        setProblem({ a, b, key: Date.now() });
+        setSpinning(false);
+        setCount((c) => c + 1);
+      }
+    };
+    tick();
   };
 
   const goHome = () => {
@@ -78,29 +100,42 @@ function Index() {
           className="relative w-full max-w-2xl animate-in fade-in zoom-in-95 duration-300"
         >
           <div
-            className="relative rounded-[2rem] border-2 border-foreground bg-card p-12 text-center md:p-16"
+            className={`relative rounded-[2rem] border-2 border-foreground bg-card p-12 text-center md:p-16 transition-transform ${
+              spinning ? "animate-pulse" : ""
+            }`}
             style={{ boxShadow: "var(--shadow-pop)" }}
           >
-            {problem ? (
+            {problem || spinning ? (
               <>
                 <p className="mb-6 text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                  문제
+                  {spinning ? "🎰 룰렛 돌리는 중..." : "문제"}
                 </p>
                 <div className="flex flex-wrap items-center justify-center gap-4 text-8xl font-black leading-none md:text-9xl">
-                  <span>{problem.a}</span>
+                  <span
+                    className={`inline-block tabular-nums ${spinning ? "animate-bounce" : ""}`}
+                    style={spinning ? { animationDuration: "0.25s" } : undefined}
+                  >
+                    {spinning ? spinA : problem!.a}
+                  </span>
                   <span className="text-primary">×</span>
-                  <span>{problem.b}</span>
+                  <span
+                    className={`inline-block tabular-nums ${spinning ? "animate-bounce" : ""}`}
+                    style={spinning ? { animationDuration: "0.25s", animationDelay: "0.1s" } : undefined}
+                  >
+                    {spinning ? spinB : problem!.b}
+                  </span>
                   <span className="text-muted-foreground">=</span>
                   <span
                     className={
-                      showAnswer ? "text-primary transition-opacity" : "text-muted-foreground"
+                      showAnswer && !spinning
+                        ? "text-primary transition-opacity"
+                        : "text-muted-foreground"
                     }
                   >
-                    {showAnswer ? problem.a * problem.b : "?"}
+                    {showAnswer && !spinning && problem ? problem.a * problem.b : "?"}
                   </span>
                 </div>
               </>
-
             ) : (
               <div className="flex flex-col items-center gap-3 py-4">
                 <Dice5 className="h-14 w-14 text-primary" />
@@ -114,14 +149,15 @@ function Index() {
         <div className="flex flex-col items-center gap-3 sm:flex-row">
           <button
             onClick={generate}
-            className="flex h-14 items-center gap-2 rounded-2xl border-2 border-foreground bg-primary px-8 text-lg font-black text-primary-foreground transition-transform hover:-translate-y-0.5 active:translate-y-0"
+            disabled={spinning}
+            className="flex h-14 items-center gap-2 rounded-2xl border-2 border-foreground bg-primary px-8 text-lg font-black text-primary-foreground transition-transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-70 disabled:hover:translate-y-0"
             style={{ boxShadow: "var(--shadow-pop)" }}
           >
-            <Dice5 className="h-5 w-5" />
-            {problem ? "다음 문제" : "문제 내기"}
+            <Dice5 className={`h-5 w-5 ${spinning ? "animate-spin" : ""}`} />
+            {spinning ? "돌리는 중..." : problem ? "다시 돌리기" : "룰렛 돌리기"}
           </button>
 
-          {problem && (
+          {problem && !spinning && (
             <button
               onClick={() => setShowAnswer((s) => !s)}
               className="flex h-14 items-center gap-2 rounded-2xl border-2 border-foreground bg-secondary px-6 text-base font-bold text-secondary-foreground transition-transform hover:-translate-y-0.5 active:translate-y-0"
