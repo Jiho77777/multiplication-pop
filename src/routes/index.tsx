@@ -18,13 +18,35 @@ function Index() {
   const [problem, setProblem] = useState<Problem | null>(null);
   const [showAnswer, setShowAnswer] = useState(false);
   const [count, setCount] = useState(0);
+  const [spinning, setSpinning] = useState(false);
+  const [spinA, setSpinA] = useState(2);
+  const [spinB, setSpinB] = useState(2);
 
   const generate = () => {
+    if (spinning) return;
+    setShowAnswer(false);
+    setSpinning(true);
     const a = Math.floor(Math.random() * 8) + 2;
     const b = Math.floor(Math.random() * 8) + 2;
-    setProblem({ a, b, key: Date.now() });
-    setShowAnswer(false);
-    setCount((c) => c + 1);
+
+    const start = Date.now();
+    const duration = 1400;
+    const tick = () => {
+      const elapsed = Date.now() - start;
+      setSpinA(Math.floor(Math.random() * 8) + 2);
+      setSpinB(Math.floor(Math.random() * 8) + 2);
+      if (elapsed < duration) {
+        const delay = 50 + (elapsed / duration) * 180;
+        setTimeout(tick, delay);
+      } else {
+        setSpinA(a);
+        setSpinB(b);
+        setProblem({ a, b, key: Date.now() });
+        setSpinning(false);
+        setCount((c) => c + 1);
+      }
+    };
+    tick();
   };
 
   const goHome = () => {
