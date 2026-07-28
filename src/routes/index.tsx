@@ -8,6 +8,8 @@ import {
   savePoints,
   loadActive,
 } from "@/lib/skins";
+import { loadActiveEffect } from "@/lib/effects";
+import { CorrectEffect } from "@/components/CorrectEffect";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -27,6 +29,8 @@ function Index() {
   const [count, setCount] = useState(0);
   const [points, setPoints] = useState(0);
   const [activeSkin, setActiveSkin] = useState(DEFAULT_SKIN_ID);
+  const [activeEffect, setActiveEffect] = useState("none");
+  const [effectTrigger, setEffectTrigger] = useState(0);
   const [spinning, setSpinning] = useState(false);
   const [spinA, setSpinA] = useState(2);
   const [spinB, setSpinB] = useState(2);
@@ -37,6 +41,7 @@ function Index() {
   useEffect(() => {
     setPoints(loadPoints());
     setActiveSkin(loadActive());
+    setActiveEffect(loadActiveEffect());
   }, []);
 
   const skin = SKINS.find((s) => s.id === activeSkin) ?? SKINS[0];
@@ -75,6 +80,7 @@ function Index() {
     const newPts = points + 100;
     setPoints(newPts);
     savePoints(newPts);
+    setEffectTrigger((n) => n + 1);
   };
 
   const goHome = () => {
@@ -98,6 +104,7 @@ function Index() {
       className="relative flex min-h-screen flex-col overflow-hidden px-6 py-8 transition-colors"
       style={{ background: skin.background }}
     >
+      <CorrectEffect effectId={activeEffect} triggerKey={effectTrigger} />
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <button

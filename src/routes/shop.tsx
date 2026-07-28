@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Home, Coins, Check, Lock, ShoppingBag, Sparkles } from "lucide-react";
+import { Home, Coins, Check, Lock, ShoppingBag, Sparkles, Zap } from "lucide-react";
 import {
   SKINS,
   RARITY_LABEL,
@@ -13,20 +13,28 @@ import {
   loadActive,
   saveActive,
 } from "@/lib/skins";
+import {
+  EFFECTS,
+  loadOwnedEffects,
+  saveOwnedEffects,
+  loadActiveEffect,
+  saveActiveEffect,
+} from "@/lib/effects";
 
 export const Route = createFileRoute("/shop")({
   head: () => ({
     meta: [
       { title: "스킨 숍 - 구구단 챌린지" },
-      { name: "description", content: "포인트로 배경 스킨을 구매하세요." },
+      { name: "description", content: "포인트로 배경 스킨과 이펙트를 구매하세요." },
     ],
   }),
   component: Shop,
 });
 
-type Filter = "all" | "owned" | "locked";
+type ItemFilter = "all" | "owned" | "locked";
+type ShopTab = "skins" | "effects";
 
-const FILTER_LABELS: Record<Filter, string> = {
+const FILTER_LABELS: Record<ItemFilter, string> = {
   all: "전체",
   owned: "보유중",
   locked: "미보유",
@@ -34,16 +42,24 @@ const FILTER_LABELS: Record<Filter, string> = {
 
 function Shop() {
   const [points, setPoints] = useState(0);
+  // skins
   const [owned, setOwned] = useState<string[]>([]);
   const [active, setActive] = useState("plain");
+  // effects
+  const [ownedEffects, setOwnedEffects] = useState<string[]>([]);
+  const [activeEffect, setActiveEffect] = useState("none");
+  // ui
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
-  const [filter, setFilter] = useState<Filter>("all");
+  const [filter, setFilter] = useState<ItemFilter>("all");
+  const [tab, setTab] = useState<ShopTab>("skins");
   const [justBought, setJustBought] = useState<string | null>(null);
 
   useEffect(() => {
     setPoints(loadPoints());
     setOwned(loadOwned());
     setActive(loadActive());
+    setOwnedEffects(loadOwnedEffects());
+    setActiveEffect(loadActiveEffect());
   }, []);
 
   const showToast = (msg: string, ok: boolean) => {
@@ -51,37 +67,54 @@ function Shop() {
     setTimeout(() => setToast(null), 1800);
   };
 
-  const buy = (id: string, price: number) => {
+  const buySkin = (id: string, price: number) => {
     if (owned.includes(id)) {
       setActive(id);
       saveActive(id);
       showToast("✅ 스킨 적용!", true);
       return;
     }
-    if (points < price) {
-      showToast("❌ 포인트가 부족해요", false);
-      return;
-    }
+    if (points < price) { showToast("❌ 포인트가 부족해요", false); return; }
     const newPts = points - price;
     const newOwned = [...owned, id];
-    setPoints(newPts);
-    setOwned(newOwned);
-    setActive(id);
-    savePoints(newPts);
-    saveOwned(newOwned);
-    saveActive(id);
+    setPoints(newPts); setOwned(newOwned); setActive(id);
+    savePoints(newPts); saveOwned(newOwned); saveActive(id);
     setJustBought(id);
     setTimeout(() => setJustBought(null), 800);
     showToast("🎉 구매 완료!", true);
   };
 
-  const filtered = SKINS.filter((s) => {
+  const buyEffect = (id: string, price: number) => {
+    if (ownedEffects.includes(id)) {
+      setActiveEffect(id);
+      saveActiveEffect(id);
+      showToast("✅ 이펙트 적용!", true);
+      return;
+    }
+    if (points < price) { showToast("❌ 포인트가 부족해요", false); return; }
+    const newPts = points - price;
+    const newOwned = [...ownedEffects, id];
+    setPoints(newPts); setOwnedEffects(newOwned); setActiveEffect(id);
+    savePoints(newPts); saveOwnedEffects(newOwned); saveActiveEffect(id);
+    setJustBought(id);
+    setTimeout(() => setJustBought(null), 800);
+    showToast("🎉 구매 완료!", true);
+  };
+
+  const filteredSkins = SKINS.filter((s) => {
     if (filter === "owned") return owned.includes(s.id);
     if (filter === "locked") return !owned.includes(s.id);
     return true;
   });
 
-  const ownedCount = owned.length;
+  const filteredEffects = EFFECTS.filter((e) => {
+    if (filter === "owned") return ownedEffects.includes(e.id);
+    if (filter === "locked") return !ownedEffects.includes(e.id);
+    return true;
+  });
+
+  const ownedSkinCount = owned.length;
+  const ownedEffectCount = ownedEffects.length;
 
   return (
     <div className="relative flex min-h-screen flex-col bg-background px-6 py-8">
@@ -123,141 +156,209 @@ function Shop() {
         {/* Title */}
         <div className="mb-6 flex flex-col items-center gap-1 text-center">
           <div className="mb-1 flex items-center gap-2 text-sm font-bold uppercase tracking-[0.3em] text-muted-foreground">
-            <ShoppingBag className="h-4 w-4" /> Skin Shop
+            <ShoppingBag className="h-4 w-4" /> Shop
           </div>
           <h1 className="text-4xl font-black tracking-tight md:text-5xl">
             스킨 <span className="text-primary">숍</span>
           </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            <span className="font-bold text-foreground">{ownedCount}</span> / {SKINS.length} 보유
-          </p>
+        </div>
+
+        {/* Shop tabs */}
+        <div className="mb-5 flex justify-center gap-3">
+          <button
+            onClick={() => setTab("skins")}
+            className={`flex items-center gap-2 rounded-2xl border-2 border-foreground px-6 py-2.5 text-sm font-black transition-transform hover:-translate-y-0.5 active:translate-y-0 ${
+              tab === "skins" ? "bg-primary text-primary-foreground" : "bg-card text-foreground"
+            }`}
+            style={{ boxShadow: "var(--shadow-pop-sm)" }}
+          >
+            <ShoppingBag className="h-4 w-4" /> 스킨
+            <span className="rounded-full bg-foreground/10 px-1.5 py-0.5 text-xs">
+              {ownedSkinCount}/{SKINS.length}
+            </span>
+          </button>
+          <button
+            onClick={() => setTab("effects")}
+            className={`flex items-center gap-2 rounded-2xl border-2 border-foreground px-6 py-2.5 text-sm font-black transition-transform hover:-translate-y-0.5 active:translate-y-0 ${
+              tab === "effects" ? "bg-primary text-primary-foreground" : "bg-card text-foreground"
+            }`}
+            style={{ boxShadow: "var(--shadow-pop-sm)" }}
+          >
+            <Zap className="h-4 w-4" /> 이펙트
+            <span className="rounded-full bg-foreground/10 px-1.5 py-0.5 text-xs">
+              {ownedEffectCount}/{EFFECTS.length}
+            </span>
+          </button>
         </div>
 
         {/* Filter tabs */}
         <div className="mb-6 flex justify-center gap-2">
-          {(["all", "owned", "locked"] as Filter[]).map((f) => (
+          {(["all", "owned", "locked"] as ItemFilter[]).map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
               className={`rounded-full border-2 border-foreground px-5 py-2 text-sm font-black transition-transform hover:-translate-y-0.5 active:translate-y-0 ${
-                filter === f
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-card text-foreground"
+                filter === f ? "bg-foreground text-background" : "bg-card text-foreground"
               }`}
               style={{ boxShadow: "var(--shadow-pop-sm)" }}
             >
               {FILTER_LABELS[f]}
-              {f === "owned" && (
-                <span className="ml-1.5 rounded-full bg-foreground/10 px-1.5 py-0.5 text-xs">
-                  {ownedCount}
-                </span>
-              )}
             </button>
           ))}
         </div>
 
-        {/* Grid */}
-        {filtered.length === 0 ? (
-          <div className="flex flex-col items-center gap-3 py-20 text-muted-foreground">
-            <Sparkles className="h-10 w-10 opacity-30" />
-            <p className="font-bold">스킨이 없어요</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {filtered.map((s) => {
-              const isOwned = owned.includes(s.id);
-              const isActive = active === s.id;
-              const canAfford = points >= s.price;
-              const isBought = justBought === s.id;
-
-              return (
-                <div
-                  key={s.id}
-                  className={`flex flex-col overflow-hidden rounded-3xl border-2 border-foreground bg-card transition-transform duration-200 ${
-                    isBought ? "scale-95" : ""
-                  } ${isActive ? "ring-4 ring-primary ring-offset-2" : ""}`}
-                  style={{ boxShadow: "var(--shadow-pop-sm)" }}
-                >
-                  {/* Preview */}
+        {/* ── SKINS ── */}
+        {tab === "skins" && (
+          filteredSkins.length === 0 ? (
+            <EmptyState />
+          ) : (
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {filteredSkins.map((s) => {
+                const isOwned = owned.includes(s.id);
+                const isActive = active === s.id;
+                const canAfford = points >= s.price;
+                const isBought = justBought === s.id;
+                return (
                   <div
-                    className="relative h-36 w-full border-b-2 border-foreground"
-                    style={{ background: s.preview }}
+                    key={s.id}
+                    className={`flex flex-col overflow-hidden rounded-3xl border-2 border-foreground bg-card transition-transform duration-200 ${isBought ? "scale-95" : ""} ${isActive ? "ring-4 ring-primary ring-offset-2" : ""}`}
+                    style={{ boxShadow: "var(--shadow-pop-sm)" }}
                   >
-                    {/* Rarity badge */}
-                    <span
-                      className={`absolute left-3 top-3 rounded-full px-2.5 py-1 text-xs font-black ${RARITY_COLOR[s.rarity as Rarity]}`}
-                    >
-                      {RARITY_LABEL[s.rarity as Rarity]}
-                    </span>
-
-                    {/* Active checkmark */}
-                    {isActive && (
-                      <div className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow">
-                        <Check className="h-4 w-4" strokeWidth={3} />
-                      </div>
-                    )}
-
-                    {/* Locked overlay */}
-                    {!isOwned && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-[1px]">
-                        <div className="flex flex-col items-center gap-1">
-                          <Lock className="h-6 w-6 text-white drop-shadow" />
-                          <span className="text-xs font-black text-white drop-shadow">
-                            {s.price.toLocaleString()} P
-                          </span>
+                    <div className="relative h-36 w-full border-b-2 border-foreground" style={{ background: s.preview }}>
+                      <span className={`absolute left-3 top-3 rounded-full px-2.5 py-1 text-xs font-black ${RARITY_COLOR[s.rarity as Rarity]}`}>
+                        {RARITY_LABEL[s.rarity as Rarity]}
+                      </span>
+                      {isActive && (
+                        <div className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow">
+                          <Check className="h-4 w-4" strokeWidth={3} />
                         </div>
+                      )}
+                      {!isOwned && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-[1px]">
+                          <div className="flex flex-col items-center gap-1">
+                            <Lock className="h-6 w-6 text-white drop-shadow" />
+                            <span className="text-xs font-black text-white drop-shadow">{s.price.toLocaleString()} P</span>
+                          </div>
+                        </div>
+                      )}
+                      <div className="absolute bottom-2 right-3 text-2xl drop-shadow">{s.emoji}</div>
+                    </div>
+                    <div className="flex flex-1 flex-col gap-3 p-4">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-black">{s.name}</h3>
+                        {isOwned ? (
+                          <span className={`rounded-full px-2.5 py-1 text-xs font-black ${isActive ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"}`}>
+                            {isActive ? "사용중" : "보유중"}
+                          </span>
+                        ) : (
+                          <span className={`flex items-center gap-1 text-sm font-black ${canAfford ? "text-primary" : "text-muted-foreground"}`}>
+                            <Coins className="h-3.5 w-3.5" />{s.price.toLocaleString()}
+                          </span>
+                        )}
                       </div>
-                    )}
-
-                    {/* Emoji */}
-                    <div className="absolute bottom-2 right-3 text-2xl drop-shadow">
-                      {s.emoji}
+                      <button
+                        onClick={() => buySkin(s.id, s.price)}
+                        disabled={!isOwned && !canAfford}
+                        className={`mt-auto flex h-11 items-center justify-center gap-2 rounded-xl border-2 border-foreground text-sm font-black transition-transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-40 disabled:hover:translate-y-0 ${isActive ? "bg-secondary text-secondary-foreground" : "bg-primary text-primary-foreground"}`}
+                        style={{ boxShadow: "var(--shadow-pop-sm)" }}
+                      >
+                        {isActive ? <><Check className="h-4 w-4" strokeWidth={3} /> 적용됨</> : isOwned ? "사용하기" : canAfford ? <><Coins className="h-4 w-4" /> 구매하기</> : <><Lock className="h-4 w-4" /> 포인트 부족</>}
+                      </button>
                     </div>
                   </div>
+                );
+              })}
+            </div>
+          )
+        )}
 
-                  {/* Info */}
-                  <div className="flex flex-1 flex-col gap-3 p-4">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-black">{s.name}</h3>
-                      {isOwned ? (
-                        <span className={`rounded-full px-2.5 py-1 text-xs font-black ${isActive ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"}`}>
-                          {isActive ? "사용중" : "보유중"}
-                        </span>
-                      ) : (
-                        <span className={`flex items-center gap-1 text-sm font-black ${canAfford ? "text-primary" : "text-muted-foreground"}`}>
-                          <Coins className="h-3.5 w-3.5" />
-                          {s.price.toLocaleString()}
-                        </span>
+        {/* ── EFFECTS ── */}
+        {tab === "effects" && (
+          filteredEffects.length === 0 ? (
+            <EmptyState />
+          ) : (
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {filteredEffects.map((e) => {
+                const isOwned = ownedEffects.includes(e.id);
+                const isActive = activeEffect === e.id;
+                const canAfford = points >= e.price;
+                const isBought = justBought === e.id;
+                return (
+                  <div
+                    key={e.id}
+                    className={`flex flex-col overflow-hidden rounded-3xl border-2 border-foreground bg-card transition-transform duration-200 ${isBought ? "scale-95" : ""} ${isActive ? "ring-4 ring-primary ring-offset-2" : ""}`}
+                    style={{ boxShadow: "var(--shadow-pop-sm)" }}
+                  >
+                    {/* Preview area */}
+                    <div className={`relative flex h-36 w-full items-center justify-center border-b-2 border-foreground ${EFFECT_BG[e.id] ?? "bg-muted"}`}>
+                      <span className={`absolute left-3 top-3 rounded-full px-2.5 py-1 text-xs font-black ${RARITY_COLOR[e.rarity as Rarity]}`}>
+                        {RARITY_LABEL[e.rarity as Rarity]}
+                      </span>
+                      {isActive && (
+                        <div className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow">
+                          <Check className="h-4 w-4" strokeWidth={3} />
+                        </div>
                       )}
+                      {!isOwned && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-[1px]">
+                          <div className="flex flex-col items-center gap-1">
+                            <Lock className="h-6 w-6 text-white drop-shadow" />
+                            <span className="text-xs font-black text-white drop-shadow">{e.price.toLocaleString()} P</span>
+                          </div>
+                        </div>
+                      )}
+                      <span className="text-5xl drop-shadow-lg">{e.emoji}</span>
                     </div>
-
-                    <button
-                      onClick={() => buy(s.id, s.price)}
-                      disabled={!isOwned && !canAfford}
-                      className={`mt-auto flex h-11 items-center justify-center gap-2 rounded-xl border-2 border-foreground text-sm font-black transition-transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-40 disabled:hover:translate-y-0 ${
-                        isActive
-                          ? "bg-secondary text-secondary-foreground"
-                          : "bg-primary text-primary-foreground"
-                      }`}
-                      style={{ boxShadow: "var(--shadow-pop-sm)" }}
-                    >
-                      {isActive ? (
-                        <><Check className="h-4 w-4" strokeWidth={3} /> 적용됨</>
-                      ) : isOwned ? (
-                        "사용하기"
-                      ) : canAfford ? (
-                        <><Coins className="h-4 w-4" /> 구매하기</>
-                      ) : (
-                        <><Lock className="h-4 w-4" /> 포인트 부족</>
-                      )}
-                    </button>
+                    <div className="flex flex-1 flex-col gap-3 p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="text-lg font-black">{e.name}</h3>
+                          <p className="text-xs text-muted-foreground">{e.description}</p>
+                        </div>
+                        {isOwned ? (
+                          <span className={`rounded-full px-2.5 py-1 text-xs font-black ${isActive ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"}`}>
+                            {isActive ? "사용중" : "보유중"}
+                          </span>
+                        ) : (
+                          <span className={`flex items-center gap-1 text-sm font-black ${canAfford ? "text-primary" : "text-muted-foreground"}`}>
+                            <Coins className="h-3.5 w-3.5" />{e.price.toLocaleString()}
+                          </span>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => buyEffect(e.id, e.price)}
+                        disabled={!isOwned && !canAfford}
+                        className={`mt-auto flex h-11 items-center justify-center gap-2 rounded-xl border-2 border-foreground text-sm font-black transition-transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-40 disabled:hover:translate-y-0 ${isActive ? "bg-secondary text-secondary-foreground" : "bg-primary text-primary-foreground"}`}
+                        style={{ boxShadow: "var(--shadow-pop-sm)" }}
+                      >
+                        {isActive ? <><Check className="h-4 w-4" strokeWidth={3} /> 적용됨</> : isOwned ? "사용하기" : canAfford ? <><Zap className="h-4 w-4" /> 구매하기</> : <><Lock className="h-4 w-4" /> 포인트 부족</>}
+                      </button>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )
         )}
       </main>
+    </div>
+  );
+}
+
+const EFFECT_BG: Record<string, string> = {
+  none: "bg-muted",
+  confetti: "bg-gradient-to-br from-pink-100 to-yellow-100",
+  stars: "bg-gradient-to-br from-yellow-50 to-amber-100",
+  hearts: "bg-gradient-to-br from-pink-100 to-rose-100",
+  fireworks: "bg-gradient-to-br from-indigo-100 to-purple-100",
+  rainbow: "bg-gradient-to-br from-red-100 via-yellow-100 to-blue-100",
+};
+
+function EmptyState() {
+  return (
+    <div className="flex flex-col items-center gap-3 py-20 text-muted-foreground">
+      <Sparkles className="h-10 w-10 opacity-30" />
+      <p className="font-bold">아이템이 없어요</p>
     </div>
   );
 }
