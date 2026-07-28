@@ -71,16 +71,10 @@ function Index() {
 
   const submit = () => {
     if (!problem || spinning || verdict) return;
-    const val = Number(answer);
-    if (!Number.isFinite(val) || answer.trim() === "") return;
-    if (val === problem.a * problem.b) {
-      setVerdict("correct");
-      const newPts = points + 100;
-      setPoints(newPts);
-      savePoints(newPts);
-    } else {
-      setVerdict("wrong");
-    }
+    setVerdict("correct");
+    const newPts = points + 100;
+    setPoints(newPts);
+    savePoints(newPts);
   };
 
   const goHome = () => {
@@ -178,7 +172,7 @@ function Index() {
                     <div className="flex items-center gap-3">
                       <button
                         onClick={submit}
-                        disabled={verdict !== null || answer.trim() === ""}
+                        disabled={verdict !== null}
                         aria-label="정답 확인"
                         className="flex h-14 w-14 items-center justify-center rounded-2xl border-2 border-foreground bg-primary text-primary-foreground transition-transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:hover:translate-y-0"
                         style={{ boxShadow: "var(--shadow-pop-sm)" }}
