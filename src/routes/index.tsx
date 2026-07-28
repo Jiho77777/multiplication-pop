@@ -7,8 +7,10 @@ import {
   loadPoints,
   savePoints,
   loadActive,
+  saveActive,
+  saveOwned,
 } from "@/lib/skins";
-import { loadActiveEffect } from "@/lib/effects";
+import { loadActiveEffect, saveActiveEffect, saveOwnedEffects, DEFAULT_EFFECT_ID } from "@/lib/effects";
 import { CorrectEffect } from "@/components/CorrectEffect";
 
 export const Route = createFileRoute("/")({
@@ -93,6 +95,12 @@ function Index() {
   const reset = () => {
     setPoints(0);
     savePoints(0);
+    setActiveSkin(DEFAULT_SKIN_ID);
+    saveActive(DEFAULT_SKIN_ID);
+    saveOwned([DEFAULT_SKIN_ID]);
+    setActiveEffect(DEFAULT_EFFECT_ID);
+    saveActiveEffect(DEFAULT_EFFECT_ID);
+    saveOwnedEffects([DEFAULT_EFFECT_ID]);
     setProblem(null);
     setAnswer("");
     setVerdict(null);
