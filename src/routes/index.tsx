@@ -211,6 +211,9 @@ function Index() {
                         onClick={() => {
                           if (verdict) return;
                           setVerdict("wrong");
+                          const newPts = Math.max(0, points - 50);
+                          setPoints(newPts);
+                          savePoints(newPts);
                         }}
                         disabled={verdict !== null}
                         aria-label="포기"
