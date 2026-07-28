@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { Sparkles, Dice5, Coins, Check, X, ShoppingBag } from "lucide-react";
+import { Home, Sparkles, Dice5, Coins, Check, X, ShoppingBag } from "lucide-react";
 import {
   SKINS,
   DEFAULT_SKIN_ID,
@@ -90,6 +90,15 @@ function Index() {
       style={{ background: skin.background }}
     >
       <header className="flex flex-wrap items-center justify-between gap-3">
+        <button
+          onClick={goHome}
+          aria-label="홈으로"
+          className="group flex h-12 w-12 items-center justify-center rounded-2xl border-2 border-foreground bg-card text-foreground transition-transform hover:-translate-y-0.5 active:translate-y-0"
+          style={{ boxShadow: "var(--shadow-pop-sm)" }}
+        >
+          <Home className="h-5 w-5 transition-transform group-hover:rotate-[-8deg]" />
+        </button>
+
         <div className="flex items-center gap-2">
           <div
             className="flex items-center gap-2 rounded-full border-2 border-foreground bg-card px-4 py-2 text-sm font-bold"
