@@ -65,23 +65,21 @@ function Index() {
     tick();
   };
 
-  const submit = () => {
+  const markCorrect = () => {
     if (!problem || spinning || verdict) return;
-    const val = Number(answer);
-    if (!Number.isFinite(val) || answer.trim() === "") return;
-    if (val === problem.a * problem.b) {
-      setVerdict("correct");
-      const newPts = points + 100;
-      setPoints(newPts);
-      savePoints(newPts);
-    } else {
-      setVerdict("wrong");
-    }
+    setVerdict("correct");
+    const newPts = points + 100;
+    setPoints(newPts);
+    savePoints(newPts);
+  };
+
+  const markWrong = () => {
+    if (!problem || spinning || verdict) return;
+    setVerdict("wrong");
   };
 
   const goHome = () => {
     setProblem(null);
-    setAnswer("");
     setVerdict(null);
     setCount(0);
   };
