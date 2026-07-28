@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Home, Sparkles, Dice5, Coins, Check, X, ShoppingBag } from "lucide-react";
 import {
   SKINS,
