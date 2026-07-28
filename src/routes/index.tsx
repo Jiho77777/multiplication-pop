@@ -30,9 +30,7 @@ function Index() {
   const [spinning, setSpinning] = useState(false);
   const [spinA, setSpinA] = useState(2);
   const [spinB, setSpinB] = useState(2);
-  const [answer, setAnswer] = useState("");
   const [verdict, setVerdict] = useState<Verdict>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setPoints(loadPoints());
@@ -44,7 +42,6 @@ function Index() {
   const generate = () => {
     if (spinning) return;
     setVerdict(null);
-    setAnswer("");
     setSpinning(true);
     const a = Math.floor(Math.random() * 8) + 2;
     const b = Math.floor(Math.random() * 8) + 2;
@@ -63,7 +60,6 @@ function Index() {
         setProblem({ a, b, key: Date.now() });
         setSpinning(false);
         setCount((c) => c + 1);
-        setTimeout(() => inputRef.current?.focus(), 50);
       }
     };
     tick();
