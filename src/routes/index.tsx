@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Home, Sparkles, Dice5, Coins, Check, X, ShoppingBag } from "lucide-react";
 import {
   SKINS,
@@ -30,9 +30,7 @@ function Index() {
   const [spinning, setSpinning] = useState(false);
   const [spinA, setSpinA] = useState(2);
   const [spinB, setSpinB] = useState(2);
-  const [answer, setAnswer] = useState("");
   const [verdict, setVerdict] = useState<Verdict>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setPoints(loadPoints());
@@ -44,7 +42,6 @@ function Index() {
   const generate = () => {
     if (spinning) return;
     setVerdict(null);
-    setAnswer("");
     setSpinning(true);
     const a = Math.floor(Math.random() * 8) + 2;
     const b = Math.floor(Math.random() * 8) + 2;
@@ -63,29 +60,26 @@ function Index() {
         setProblem({ a, b, key: Date.now() });
         setSpinning(false);
         setCount((c) => c + 1);
-        setTimeout(() => inputRef.current?.focus(), 50);
       }
     };
     tick();
   };
 
-  const submit = () => {
+  const markCorrect = () => {
     if (!problem || spinning || verdict) return;
-    const val = Number(answer);
-    if (!Number.isFinite(val) || answer.trim() === "") return;
-    if (val === problem.a * problem.b) {
-      setVerdict("correct");
-      const newPts = points + 100;
-      setPoints(newPts);
-      savePoints(newPts);
-    } else {
-      setVerdict("wrong");
-    }
+    setVerdict("correct");
+    const newPts = points + 100;
+    setPoints(newPts);
+    savePoints(newPts);
+  };
+
+  const markWrong = () => {
+    if (!problem || spinning || verdict) return;
+    setVerdict("wrong");
   };
 
   const goHome = () => {
     setProblem(null);
-    setAnswer("");
     setVerdict(null);
     setCount(0);
   };
@@ -183,44 +177,25 @@ function Index() {
                 </div>
 
                 {!spinning && problem && (
-                  <div className="mt-8 flex flex-col items-center gap-4">
-                    <input
-                      ref={inputRef}
-                      type="number"
-                      inputMode="numeric"
-                      value={answer}
-                      onChange={(e) => setAnswer(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") submit();
-                      }}
+                  <div className="mt-8 flex items-center justify-center gap-3">
+                    <button
+                      onClick={markCorrect}
                       disabled={verdict !== null}
-                      placeholder="정답 입력"
-                      className="h-14 w-40 rounded-2xl border-2 border-foreground bg-background text-center text-3xl font-black tabular-nums outline-none focus:ring-4 focus:ring-primary/40 disabled:opacity-70"
+                      aria-label="정답"
+                      className="flex h-14 w-14 items-center justify-center rounded-2xl border-2 border-foreground bg-primary text-primary-foreground transition-transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:hover:translate-y-0"
                       style={{ boxShadow: "var(--shadow-pop-sm)" }}
-                    />
-                    <div className="flex items-center gap-3">
-                      <button
-                        onClick={submit}
-                        disabled={verdict !== null || answer.trim() === ""}
-                        aria-label="정답 확인"
-                        className="flex h-14 w-14 items-center justify-center rounded-2xl border-2 border-foreground bg-primary text-primary-foreground transition-transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:hover:translate-y-0"
-                        style={{ boxShadow: "var(--shadow-pop-sm)" }}
-                      >
-                        <Check className="h-6 w-6" strokeWidth={3} />
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (verdict) return;
-                          setVerdict("wrong");
-                        }}
-                        disabled={verdict !== null}
-                        aria-label="포기"
-                        className="flex h-14 w-14 items-center justify-center rounded-2xl border-2 border-foreground bg-destructive text-destructive-foreground transition-transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:hover:translate-y-0"
-                        style={{ boxShadow: "var(--shadow-pop-sm)" }}
-                      >
-                        <X className="h-6 w-6" strokeWidth={3} />
-                      </button>
-                    </div>
+                    >
+                      <Check className="h-6 w-6" strokeWidth={3} />
+                    </button>
+                    <button
+                      onClick={markWrong}
+                      disabled={verdict !== null}
+                      aria-label="틀림"
+                      className="flex h-14 w-14 items-center justify-center rounded-2xl border-2 border-foreground bg-destructive text-destructive-foreground transition-transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:hover:translate-y-0"
+                      style={{ boxShadow: "var(--shadow-pop-sm)" }}
+                    >
+                      <X className="h-6 w-6" strokeWidth={3} />
+                    </button>
                   </div>
                 )}
               </>
