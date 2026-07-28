@@ -177,44 +177,25 @@ function Index() {
                 </div>
 
                 {!spinning && problem && (
-                  <div className="mt-8 flex flex-col items-center gap-4">
-                    <input
-                      ref={inputRef}
-                      type="number"
-                      inputMode="numeric"
-                      value={answer}
-                      onChange={(e) => setAnswer(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") submit();
-                      }}
+                  <div className="mt-8 flex items-center justify-center gap-3">
+                    <button
+                      onClick={markCorrect}
                       disabled={verdict !== null}
-                      placeholder="정답 입력"
-                      className="h-14 w-40 rounded-2xl border-2 border-foreground bg-background text-center text-3xl font-black tabular-nums outline-none focus:ring-4 focus:ring-primary/40 disabled:opacity-70"
+                      aria-label="정답"
+                      className="flex h-14 w-14 items-center justify-center rounded-2xl border-2 border-foreground bg-primary text-primary-foreground transition-transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:hover:translate-y-0"
                       style={{ boxShadow: "var(--shadow-pop-sm)" }}
-                    />
-                    <div className="flex items-center gap-3">
-                      <button
-                        onClick={submit}
-                        disabled={verdict !== null || answer.trim() === ""}
-                        aria-label="정답 확인"
-                        className="flex h-14 w-14 items-center justify-center rounded-2xl border-2 border-foreground bg-primary text-primary-foreground transition-transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:hover:translate-y-0"
-                        style={{ boxShadow: "var(--shadow-pop-sm)" }}
-                      >
-                        <Check className="h-6 w-6" strokeWidth={3} />
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (verdict) return;
-                          setVerdict("wrong");
-                        }}
-                        disabled={verdict !== null}
-                        aria-label="포기"
-                        className="flex h-14 w-14 items-center justify-center rounded-2xl border-2 border-foreground bg-destructive text-destructive-foreground transition-transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:hover:translate-y-0"
-                        style={{ boxShadow: "var(--shadow-pop-sm)" }}
-                      >
-                        <X className="h-6 w-6" strokeWidth={3} />
-                      </button>
-                    </div>
+                    >
+                      <Check className="h-6 w-6" strokeWidth={3} />
+                    </button>
+                    <button
+                      onClick={markWrong}
+                      disabled={verdict !== null}
+                      aria-label="틀림"
+                      className="flex h-14 w-14 items-center justify-center rounded-2xl border-2 border-foreground bg-destructive text-destructive-foreground transition-transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:hover:translate-y-0"
+                      style={{ boxShadow: "var(--shadow-pop-sm)" }}
+                    >
+                      <X className="h-6 w-6" strokeWidth={3} />
+                    </button>
                   </div>
                 )}
               </>
