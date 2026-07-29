@@ -11,6 +11,7 @@ import {
   saveOwned,
 } from "@/lib/skins";
 import { loadActiveEffect, saveActiveEffect, saveOwnedEffects, DEFAULT_EFFECT_ID } from "@/lib/effects";
+import { BOOSTERS, loadActiveBooster, saveActiveBooster, saveOwnedBoosters, DEFAULT_BOOSTER_ID } from "@/lib/boosters";
 import { CorrectEffect } from "@/components/CorrectEffect";
 
 export const Route = createFileRoute("/")({
@@ -32,6 +33,7 @@ function Index() {
   const [points, setPoints] = useState(0);
   const [activeSkin, setActiveSkin] = useState(DEFAULT_SKIN_ID);
   const [activeEffect, setActiveEffect] = useState("none");
+  const [activeBooster, setActiveBooster] = useState(DEFAULT_BOOSTER_ID);
   const [effectTrigger, setEffectTrigger] = useState(0);
   const [spinning, setSpinning] = useState(false);
   const [spinA, setSpinA] = useState(2);
@@ -44,6 +46,7 @@ function Index() {
     setPoints(loadPoints());
     setActiveSkin(loadActive());
     setActiveEffect(loadActiveEffect());
+    setActiveBooster(loadActiveBooster());
   }, []);
 
   const skin = SKINS.find((s) => s.id === activeSkin) ?? SKINS[0];
@@ -82,7 +85,9 @@ function Index() {
     if (!Number.isFinite(val) || answer.trim() === "") return;
     if (val === problem.a * problem.b) {
       setVerdict("correct");
-      const newPts = points + 100;
+      const multiplier = BOOSTERS.find((b) => b.id === activeBooster)?.multiplier ?? 1;
+      const earned = Math.round(100 * multiplier);
+      const newPts = points + earned;
       setPoints(newPts);
       savePoints(newPts);
       setEffectTrigger((n) => n + 1);
@@ -110,6 +115,9 @@ function Index() {
     setActiveEffect(DEFAULT_EFFECT_ID);
     saveActiveEffect(DEFAULT_EFFECT_ID);
     saveOwnedEffects([DEFAULT_EFFECT_ID]);
+    setActiveBooster(DEFAULT_BOOSTER_ID);
+    saveActiveBooster(DEFAULT_BOOSTER_ID);
+    saveOwnedBoosters([DEFAULT_BOOSTER_ID]);
     setProblem(null);
     setAnswer("");
     setVerdict(null);
@@ -193,7 +201,7 @@ function Index() {
             {problem || spinning ? (
               <>
                 <p className="mb-6 text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                  {spinning ? "🎰 룰렛 돌리는 중..." : verdict === "correct" ? "정답! +100P" : verdict === "wrong" ? `아쉬워요! 정답은 ${problem!.a * problem!.b}` : "문제"}
+                  {spinning ? "🎰 룰렛 돌리는 중..." : verdict === "correct" ? `정답! +${Math.round(100 * (BOOSTERS.find((b) => b.id === activeBooster)?.multiplier ?? 1))}P` : verdict === "wrong" ? `아쉬워요! 정답은 ${problem!.a * problem!.b}` : "문제"}
                 </p>
                 <div className="flex flex-wrap items-center justify-center gap-4 text-7xl font-black leading-none md:text-8xl">
                   <span

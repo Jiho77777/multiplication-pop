@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Home, Coins, Check, Lock, ShoppingBag, Sparkles, Zap } from "lucide-react";
+import { Home, Coins, Check, Lock, ShoppingBag, Sparkles, Zap, Rocket } from "lucide-react";
 import {
   SKINS,
   RARITY_LABEL,
@@ -20,6 +20,13 @@ import {
   loadActiveEffect,
   saveActiveEffect,
 } from "@/lib/effects";
+import {
+  BOOSTERS,
+  loadOwnedBoosters,
+  saveOwnedBoosters,
+  loadActiveBooster,
+  saveActiveBooster,
+} from "@/lib/boosters";
 
 export const Route = createFileRoute("/shop")({
   head: () => ({
@@ -32,7 +39,7 @@ export const Route = createFileRoute("/shop")({
 });
 
 type ItemFilter = "all" | "owned" | "locked";
-type ShopTab = "skins" | "effects";
+type ShopTab = "skins" | "effects" | "boosters";
 
 const FILTER_LABELS: Record<ItemFilter, string> = {
   all: "전체",
@@ -48,6 +55,9 @@ function Shop() {
   // effects
   const [ownedEffects, setOwnedEffects] = useState<string[]>([]);
   const [activeEffect, setActiveEffect] = useState("none");
+  // boosters
+  const [ownedBoosters, setOwnedBoosters] = useState<string[]>([]);
+  const [activeBooster, setActiveBooster] = useState("x1");
   // ui
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
   const [filter, setFilter] = useState<ItemFilter>("all");
@@ -60,6 +70,8 @@ function Shop() {
     setActive(loadActive());
     setOwnedEffects(loadOwnedEffects());
     setActiveEffect(loadActiveEffect());
+    setOwnedBoosters(loadOwnedBoosters());
+    setActiveBooster(loadActiveBooster());
   }, []);
 
   const showToast = (msg: string, ok: boolean) => {
@@ -96,6 +108,23 @@ function Shop() {
     const newOwned = [...ownedEffects, id];
     setPoints(newPts); setOwnedEffects(newOwned); setActiveEffect(id);
     savePoints(newPts); saveOwnedEffects(newOwned); saveActiveEffect(id);
+    setJustBought(id);
+    setTimeout(() => setJustBought(null), 800);
+    showToast("🎉 구매 완료!", true);
+  };
+
+  const buyBooster = (id: string, price: number) => {
+    if (ownedBoosters.includes(id)) {
+      setActiveBooster(id);
+      saveActiveBooster(id);
+      showToast("✅ 부스터 적용!", true);
+      return;
+    }
+    if (points < price) { showToast("❌ 포인트가 부족해요", false); return; }
+    const newPts = points - price;
+    const newOwned = [...ownedBoosters, id];
+    setPoints(newPts); setOwnedBoosters(newOwned); setActiveBooster(id);
+    savePoints(newPts); saveOwnedBoosters(newOwned); saveActiveBooster(id);
     setJustBought(id);
     setTimeout(() => setJustBought(null), 800);
     showToast("🎉 구매 완료!", true);
@@ -189,10 +218,22 @@ function Shop() {
               {ownedEffectCount}/{EFFECTS.length}
             </span>
           </button>
+          <button
+            onClick={() => setTab("boosters")}
+            className={`flex items-center gap-2 rounded-2xl border-2 border-foreground px-6 py-2.5 text-sm font-black transition-transform hover:-translate-y-0.5 active:translate-y-0 ${
+              tab === "boosters" ? "bg-primary text-primary-foreground" : "bg-card text-foreground"
+            }`}
+            style={{ boxShadow: "var(--shadow-pop-sm)" }}
+          >
+            <Rocket className="h-4 w-4" /> 부스터
+            <span className="rounded-full bg-foreground/10 px-1.5 py-0.5 text-xs">
+              {ownedBoosters.length}/{BOOSTERS.length}
+            </span>
+          </button>
         </div>
 
-        {/* Filter tabs */}
-        <div className="mb-6 flex justify-center gap-2">
+        {/* Filter tabs — boosters 탭에서는 숨김 */}
+        <div className={`mb-6 flex justify-center gap-2 ${tab === "boosters" ? "hidden" : ""}`}>
           {(["all", "owned", "locked"] as ItemFilter[]).map((f) => (
             <button
               key={f}
@@ -340,18 +381,89 @@ function Shop() {
             </div>
           )
         )}
+
+        {/* ── BOOSTERS ── */}
+        {tab === "boosters" && (
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {BOOSTERS.map((b) => {
+              const isOwned = ownedBoosters.includes(b.id);
+              const isActive = activeBooster === b.id;
+              const canAfford = points >= b.price;
+              const isBought = justBought === b.id;
+              return (
+                <div
+                  key={b.id}
+                  className={`flex flex-col overflow-hidden rounded-3xl border-2 border-foreground bg-card transition-transform duration-200 ${isBought ? "scale-95" : ""} ${isActive ? "ring-4 ring-primary ring-offset-2" : ""}`}
+                  style={{ boxShadow: "var(--shadow-pop-sm)" }}
+                >
+                  <div className={`relative flex h-36 w-full flex-col items-center justify-center gap-2 border-b-2 border-foreground ${BOOSTER_BG[b.id] ?? "bg-muted"}`}>
+                    {isActive && (
+                      <div className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow">
+                        <Check className="h-4 w-4" strokeWidth={3} />
+                      </div>
+                    )}
+                    {!isOwned && b.price > 0 && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-[1px]">
+                        <div className="flex flex-col items-center gap-1">
+                          <Lock className="h-6 w-6 text-white drop-shadow" />
+                          <span className="text-xs font-black text-white drop-shadow">{b.price.toLocaleString()} P</span>
+                        </div>
+                      </div>
+                    )}
+                    <span className="text-5xl drop-shadow-lg">{b.emoji}</span>
+                    <span className="text-lg font-black text-foreground drop-shadow">×{b.multiplier}</span>
+                  </div>
+                  <div className="flex flex-1 flex-col gap-3 p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-lg font-black">{b.name}</h3>
+                        <p className="text-xs text-muted-foreground">{b.description}</p>
+                      </div>
+                      {isOwned ? (
+                        <span className={`rounded-full px-2.5 py-1 text-xs font-black ${isActive ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"}`}>
+                          {isActive ? "사용중" : "보유중"}
+                        </span>
+                      ) : (
+                        <span className={`flex items-center gap-1 text-sm font-black ${canAfford ? "text-primary" : "text-muted-foreground"}`}>
+                          <Coins className="h-3.5 w-3.5" />{b.price.toLocaleString()}
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => buyBooster(b.id, b.price)}
+                      disabled={!isOwned && !canAfford}
+                      className={`mt-auto flex h-11 items-center justify-center gap-2 rounded-xl border-2 border-foreground text-sm font-black transition-transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-40 disabled:hover:translate-y-0 ${isActive ? "bg-secondary text-secondary-foreground" : "bg-primary text-primary-foreground"}`}
+                      style={{ boxShadow: "var(--shadow-pop-sm)" }}
+                    >
+                      {isActive ? <><Check className="h-4 w-4" strokeWidth={3} /> 적용됨</> : isOwned ? "사용하기" : canAfford ? <><Rocket className="h-4 w-4" /> 구매하기</> : <><Lock className="h-4 w-4" /> 포인트 부족</>}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </main>
     </div>
   );
 }
 
 const EFFECT_BG: Record<string, string> = {
-  none: "bg-muted",
-  confetti: "bg-gradient-to-br from-pink-100 to-yellow-100",
-  stars: "bg-gradient-to-br from-yellow-50 to-amber-100",
-  hearts: "bg-gradient-to-br from-pink-100 to-rose-100",
+  none:      "bg-muted",
+  confetti:  "bg-gradient-to-br from-pink-100 to-yellow-100",
+  coins:     "bg-gradient-to-br from-yellow-100 to-amber-100",
+  stars:     "bg-gradient-to-br from-yellow-50 to-amber-100",
+  hearts:    "bg-gradient-to-br from-pink-100 to-rose-100",
+  lightning: "bg-gradient-to-br from-yellow-100 to-orange-100",
+  sakura:    "bg-gradient-to-br from-pink-50 to-pink-200",
   fireworks: "bg-gradient-to-br from-indigo-100 to-purple-100",
-  rainbow: "bg-gradient-to-br from-red-100 via-yellow-100 to-blue-100",
+  snow:      "bg-gradient-to-br from-blue-50 to-cyan-100",
+  rainbow:   "bg-gradient-to-br from-red-100 via-yellow-100 to-blue-100",
+};
+
+const BOOSTER_BG: Record<string, string> = {
+  x1:    "bg-gradient-to-br from-zinc-100 to-zinc-200",
+  x1_5:  "bg-gradient-to-br from-amber-100 to-yellow-200",
 };
 
 function EmptyState() {

@@ -125,6 +125,16 @@ export const SKINS: Skin[] = [
     preview: "linear-gradient(135deg, oklch(0.5 0.25 300), oklch(0.3 0.2 260))",
   },
   {
+    id: "rainbow",
+    name: "레인보우",
+    price: 2500,
+    rarity: "legendary",
+    emoji: "🌈",
+    background:
+      "linear-gradient(160deg, oklch(0.85 0.18 25 / 0.55) 0%, oklch(0.85 0.2 70 / 0.5) 18%, oklch(0.87 0.17 130 / 0.5) 36%, oklch(0.8 0.18 220 / 0.5) 55%, oklch(0.75 0.22 280 / 0.5) 73%, oklch(0.72 0.24 310 / 0.55) 100%), var(--color-background)",
+    preview: "linear-gradient(135deg, oklch(0.85 0.18 25), oklch(0.85 0.2 70), oklch(0.8 0.18 220), oklch(0.72 0.24 310))",
+  },
+  {
     id: "aurora",
     name: "오로라",
     price: 3000,
