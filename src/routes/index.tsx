@@ -78,11 +78,20 @@ function Index() {
 
   const submit = () => {
     if (!problem || spinning || verdict) return;
-    setVerdict("correct");
-    const newPts = points + 100;
-    setPoints(newPts);
-    savePoints(newPts);
-    setEffectTrigger((n) => n + 1);
+    const val = Number(answer);
+    if (!Number.isFinite(val) || answer.trim() === "") return;
+    if (val === problem.a * problem.b) {
+      setVerdict("correct");
+      const newPts = points + 100;
+      setPoints(newPts);
+      savePoints(newPts);
+      setEffectTrigger((n) => n + 1);
+    } else {
+      setVerdict("wrong");
+      const newPts = Math.max(0, points - 50);
+      setPoints(newPts);
+      savePoints(newPts);
+    }
   };
 
   const goHome = () => {
@@ -212,10 +221,22 @@ function Index() {
 
                 {!spinning && problem && (
                   <div className="mt-8 flex flex-col items-center gap-4">
+                    <input
+                      ref={inputRef}
+                      type="number"
+                      inputMode="numeric"
+                      value={answer}
+                      onChange={(e) => setAnswer(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
+                      disabled={verdict !== null}
+                      placeholder="정답 입력"
+                      className="h-14 w-40 rounded-2xl border-2 border-foreground bg-background text-center text-3xl font-black tabular-nums outline-none focus:ring-4 focus:ring-primary/40 disabled:opacity-70"
+                      style={{ boxShadow: "var(--shadow-pop-sm)" }}
+                    />
                     <div className="flex items-center gap-3">
                       <button
                         onClick={submit}
-                        disabled={verdict !== null}
+                        disabled={verdict !== null || answer.trim() === ""}
                         aria-label="정답 확인"
                         className="flex h-14 w-14 items-center justify-center rounded-2xl border-2 border-foreground bg-primary text-primary-foreground transition-transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:hover:translate-y-0"
                         style={{ boxShadow: "var(--shadow-pop-sm)" }}
