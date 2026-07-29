@@ -458,12 +458,17 @@ const EFFECT_BG: Record<string, string> = {
   sakura:    "bg-gradient-to-br from-pink-50 to-pink-200",
   fireworks: "bg-gradient-to-br from-indigo-100 to-purple-100",
   snow:      "bg-gradient-to-br from-blue-50 to-cyan-100",
+  butterfly: "bg-gradient-to-br from-purple-50 to-pink-100",
+  party:     "bg-gradient-to-br from-red-100 via-yellow-100 to-green-100",
+  diamond:   "bg-gradient-to-br from-cyan-50 to-blue-100",
   rainbow:   "bg-gradient-to-br from-red-100 via-yellow-100 to-blue-100",
 };
 
 const BOOSTER_BG: Record<string, string> = {
   x1:    "bg-gradient-to-br from-zinc-100 to-zinc-200",
   x1_5:  "bg-gradient-to-br from-amber-100 to-yellow-200",
+  x2:    "bg-gradient-to-br from-orange-100 to-red-200",
+  x3:    "bg-gradient-to-br from-yellow-200 to-amber-300",
 };
 
 function EmptyState() {

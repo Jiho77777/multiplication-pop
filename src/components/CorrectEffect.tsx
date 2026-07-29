@@ -20,7 +20,10 @@ const RAINBOW_COLORS = ["#ff0000","#ff7700","#ffff00","#00cc00","#0000ff","#8b00
 const SAKURA_COLORS  = ["#ffb7c5","#ff90a8","#ffc0cb","#ffaec9","#ff85a1"];
 const SNOW_COLORS    = ["#e0f7fa","#b2ebf2","#ffffff","#e3f2fd","#bbdefb"];
 const LIGHTNING_COLORS=["#ffd700","#fff176","#ffeb3b","#ffe57f","#ffffff"];
-const COIN_COLORS    = ["#ffd700","#ffb300","#ffc107","#ff8f00","#ffe082"];
+const COIN_COLORS      = ["#ffd700","#ffb300","#ffc107","#ff8f00","#ffe082"];
+const BUTTERFLY_COLORS = ["#ff9ff3","#f9ca24","#6ab04c","#e056fd","#48dbfb"];
+const PARTY_COLORS     = ["#ff6b6b","#feca57","#48dbfb","#ff9ff3","#a29bfe","#55efc4","#fd79a8"];
+const DIAMOND_COLORS   = ["#a8edea","#74b9ff","#dfe6e9","#81ecec","#ffffff","#b2bec3"];
 
 function makeParticles(count: number, emojis?: string[], colors?: string[]): Particle[] {
   return Array.from({ length: count }, (_, i) => ({
@@ -76,6 +79,9 @@ export function CorrectEffect({ effectId, triggerKey }: EffectProps) {
       case "sakura":     ps = makeParticles(40, ["🌸","🌺","🌷"], SAKURA_COLORS); break;
       case "fireworks":  ps = makeParticles(55, ["🎆","✨","💥","🌟"], FIREWORK_COLORS); break;
       case "snow":       ps = makeParticles(45, ["❄️","🌨️","⛄"], SNOW_COLORS); break;
+      case "butterfly":  ps = makeParticles(25, ["🦋","🌸","✨"], BUTTERFLY_COLORS); break;
+      case "party":      ps = makeParticles(55, ["🎊","🎉","🎈","✨","🌟"], PARTY_COLORS); break;
+      case "diamond":    ps = makeParticles(35, ["💎","✨","💠","🔷"], DIAMOND_COLORS); break;
       case "rainbow":    ps = makeParticles(50, ["🌈","⭐","✨","💫","🎉"], RAINBOW_COLORS); break;
     }
 

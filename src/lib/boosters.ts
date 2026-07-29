@@ -24,6 +24,22 @@ export const BOOSTERS: Booster[] = [
     description: "정답 시 포인트 1.5배!",
     multiplier: 1.5,
   },
+  {
+    id: "x2",
+    name: "2배 포인트",
+    price: 5000,
+    emoji: "🚀",
+    description: "정답 시 포인트 2배!",
+    multiplier: 2,
+  },
+  {
+    id: "x3",
+    name: "3배 포인트",
+    price: 12000,
+    emoji: "👑",
+    description: "정답 시 포인트 3배!",
+    multiplier: 3,
+  },
 ];
 
 export const DEFAULT_BOOSTER_ID = "x1";

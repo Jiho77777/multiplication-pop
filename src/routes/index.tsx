@@ -59,13 +59,13 @@ function Index() {
     const a = Math.floor(Math.random() * 8) + 2;
     const b = Math.floor(Math.random() * 8) + 2;
     const start = Date.now();
-    const duration = 1400;
+    const duration = 600;
     const tick = () => {
       const elapsed = Date.now() - start;
       setSpinA(Math.floor(Math.random() * 8) + 2);
       setSpinB(Math.floor(Math.random() * 8) + 2);
       if (elapsed < duration) {
-        const delay = 50 + (elapsed / duration) * 180;
+        const delay = 40 + (elapsed / duration) * 120;
         setTimeout(tick, delay);
       } else {
         setSpinA(a);

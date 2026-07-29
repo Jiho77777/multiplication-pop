@@ -125,6 +125,36 @@ export const SKINS: Skin[] = [
     preview: "linear-gradient(135deg, oklch(0.5 0.25 300), oklch(0.3 0.2 260))",
   },
   {
+    id: "icecream",
+    name: "아이스크림",
+    price: 1200,
+    rarity: "epic",
+    emoji: "🍦",
+    background:
+      "radial-gradient(circle at 20% 30%, oklch(0.9 0.12 340 / 0.55), transparent 45%), radial-gradient(circle at 75% 70%, oklch(0.88 0.1 200 / 0.5), transparent 50%), radial-gradient(circle at 55% 20%, oklch(0.92 0.1 80 / 0.45), transparent 40%), oklch(0.97 0.03 60)",
+    preview: "linear-gradient(135deg, oklch(0.9 0.12 340), oklch(0.88 0.1 200), oklch(0.92 0.1 80))",
+  },
+  {
+    id: "moonlight",
+    name: "문라이트",
+    price: 1500,
+    rarity: "epic",
+    emoji: "🌙",
+    background:
+      "radial-gradient(circle at 70% 20%, oklch(0.75 0.1 260 / 0.6), transparent 45%), radial-gradient(circle at 20% 80%, oklch(0.55 0.15 280 / 0.7), transparent 50%), oklch(0.18 0.06 265)",
+    preview: "linear-gradient(135deg, oklch(0.55 0.15 280), oklch(0.25 0.08 265))",
+  },
+  {
+    id: "halloween",
+    name: "할로윈",
+    price: 1800,
+    rarity: "epic",
+    emoji: "🎃",
+    background:
+      "radial-gradient(circle at 25% 25%, oklch(0.7 0.22 55 / 0.65), transparent 45%), radial-gradient(circle at 75% 75%, oklch(0.45 0.2 310 / 0.7), transparent 50%), oklch(0.15 0.05 30)",
+    preview: "linear-gradient(135deg, oklch(0.7 0.22 55), oklch(0.35 0.2 310))",
+  },
+  {
     id: "rainbow",
     name: "레인보우",
     price: 2500,
