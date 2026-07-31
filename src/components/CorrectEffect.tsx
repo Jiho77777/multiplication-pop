@@ -39,7 +39,37 @@ function makeParticles(count: number, emojis?: string[], colors?: string[]): Par
   }));
 }
 
-function ParticleEl({ p, duration }: { p: Particle; duration: number }) {
+// which animation style each effect uses
+const KIND: Record<string, "flutter" | "rise" | "twinkle" | "drift"> = {
+  confetti: "flutter",
+  party: "flutter",
+  hearts: "rise",
+  butterfly: "rise",
+  stars: "twinkle",
+  diamond: "twinkle",
+  coins: "twinkle",
+  sakura: "drift",
+  snow: "drift",
+  lightning: "flutter",
+};
+
+const ANIM: Record<string, string> = {
+  flutter: "particle-flutter",
+  rise: "particle-rise",
+  twinkle: "particle-twinkle",
+  drift: "particle-drift",
+};
+
+const EASE: Record<string, string> = {
+  flutter: "cubic-bezier(0.4,0,0.6,1)",
+  rise: "ease-out",
+  twinkle: "ease-in-out",
+  drift: "ease-in-out",
+};
+
+function ParticleEl({ p, duration, kind }: { p: Particle; duration: number; kind: keyof typeof ANIM }) {
+  const sway = (p.id % 2 === 0 ? 1 : -1) * (p.speed * 18 + 8);
+  const fall = kind === "drift" ? p.speed * 90 + 140 : p.speed * 80 + 80;
   const style: React.CSSProperties = {
     position: "absolute",
     left: `${p.x}%`,
@@ -48,10 +78,12 @@ function ParticleEl({ p, duration }: { p: Particle; duration: number }) {
     height: p.emoji ? undefined : p.size,
     fontSize: p.emoji ? p.size + 8 : undefined,
     backgroundColor: p.emoji ? undefined : p.color,
+    boxShadow: p.emoji ? undefined : `0 0 5px ${p.color}80`,
     borderRadius: "2px",
     transform: `rotate(${p.angle}deg)`,
-    animation: `particle-fall ${duration}ms ease-in forwards`,
-    ["--fall-dist" as string]: `${p.speed * 80 + 60}px`,
+    animation: `${ANIM[kind]} ${duration}ms ${EASE[kind]} ${(p.id % 5) * 45}ms forwards`,
+    ["--fall-dist" as string]: `${fall}px`,
+    ["--sway" as string]: `${sway}px`,
     ["--spin" as string]: `${p.spin}deg`,
     pointerEvents: "none",
     lineHeight: 1,
@@ -130,10 +162,35 @@ export function CorrectEffect({ effectId, triggerKey }: EffectProps) {
   return (
     <div className="pointer-events-none fixed inset-0 overflow-hidden z-50">
       <style>{`
-        @keyframes particle-fall {
-          0%   { transform: rotate(0deg) translateY(0) scale(1); opacity: 1; }
+        @keyframes particle-flutter {
+          0%   { transform: translate(0,0) rotate(0deg) scale(1); opacity: 1; }
           80%  { opacity: 1; }
-          100% { transform: rotate(var(--spin, 360deg)) translateY(var(--fall-dist, 80px)) scale(0.4); opacity: 0; }
+          100% { transform: translate(var(--sway,0), var(--fall-dist,120px)) rotate(var(--spin,360deg)) scale(0.55); opacity: 0; }
+        }
+        @keyframes particle-rise {
+          0%   { transform: translate(0,0) scale(0.4); opacity: 0; }
+          20%  { opacity: 1; transform: translate(0,-12px) scale(1.1); }
+          100% { transform: translate(var(--sway,0), calc(var(--fall-dist,180px) * -1)) scale(0.7); opacity: 0; }
+        }
+        @keyframes particle-twinkle {
+          0%   { transform: translateY(0) scale(0) rotate(0deg); opacity: 0; }
+          25%  { transform: translateY(12px) scale(1.25) rotate(90deg); opacity: 1; }
+          55%  { transform: translateY(26px) scale(0.85) rotate(160deg); opacity: 1; }
+          100% { transform: translate(var(--sway,0), var(--fall-dist,110px)) scale(0.4) rotate(260deg); opacity: 0; }
+        }
+        @keyframes particle-drift {
+          0%   { transform: translate(0,0) rotate(0deg) scale(0.8); opacity: 0; }
+          15%  { opacity: 1; scale: 1; }
+          50%  { transform: translate(calc(var(--sway,0) * -1), calc(var(--fall-dist,200px) * 0.5)) rotate(calc(var(--spin,180deg) * 0.5)); }
+          100% { transform: translate(var(--sway,0), var(--fall-dist,200px)) rotate(var(--spin,180deg)) scale(0.6); opacity: 0; }
+        }
+        @keyframes lightning-flash {
+          0%   { opacity: 0; }
+          6%   { opacity: 0.85; }
+          12%  { opacity: 0.05; }
+          20%  { opacity: 0.7; }
+          32%  { opacity: 0; }
+          100% { opacity: 0; }
         }
         @keyframes firework-launch {
           0%   { transform: translateY(60vh) scale(0.6); opacity: 0; }
@@ -176,6 +233,18 @@ export function CorrectEffect({ effectId, triggerKey }: EffectProps) {
 
       {effectId === "rainbow" && <RainbowArc duration={duration} />}
 
+      {effectId === "lightning" && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background: "radial-gradient(circle at 50% 30%, rgba(255,247,150,0.9), rgba(255,235,59,0.35) 40%, transparent 70%)",
+            animation: `lightning-flash ${duration}ms ease-out forwards`,
+            mixBlendMode: "screen",
+          }}
+        />
+      )}
+
       {effectId === "fireworks" &&
         bursts.map((b) => <FireworkBurst key={b.id} b={b} duration={duration} />)}
 
@@ -183,7 +252,7 @@ export function CorrectEffect({ effectId, triggerKey }: EffectProps) {
         effectId === "rainbow" ? (
           <RainbowSparkle key={p.id} p={p} duration={duration} />
         ) : (
-          <ParticleEl key={p.id} p={p} duration={duration} />
+          <ParticleEl key={p.id} p={p} duration={duration} kind={KIND[effectId] ?? "flutter"} />
         ),
       )}
     </div>
