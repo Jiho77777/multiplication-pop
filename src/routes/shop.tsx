@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Home, Coins, Check, Lock, ShoppingBag, Sparkles, Zap, Rocket } from "lucide-react";
+import { Hop as Home, Coins, Check, Lock, ShoppingBag, Sparkles, Zap, Rocket } from "lucide-react";
 import {
   SKINS,
   RARITY_LABEL,
