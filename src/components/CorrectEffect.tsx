@@ -103,10 +103,88 @@ export function CorrectEffect({ effectId, triggerKey }: EffectProps) {
           80%  { opacity: 1; }
           100% { transform: rotate(var(--spin, 360deg)) translateY(var(--fall-dist, 80px)) scale(0.4); opacity: 0; }
         }
+        @keyframes rainbow-arc-in {
+          0%   { transform: translate(-50%, 40%) scale(0.6); opacity: 0; }
+          30%  { opacity: 1; }
+          70%  { transform: translate(-50%, 0%) scale(1); opacity: 1; }
+          100% { transform: translate(-50%, -6%) scale(1.04); opacity: 0; }
+        }
+        @keyframes rainbow-shimmer {
+          0%   { opacity: 0; }
+          25%  { opacity: 0.55; }
+          100% { opacity: 0; }
+        }
+        @keyframes rainbow-sparkle {
+          0%   { transform: translateY(0) scale(0.4) rotate(0deg); opacity: 0; }
+          30%  { transform: translateY(-14px) scale(1.1) rotate(90deg); opacity: 1; }
+          100% { transform: translateY(-46px) scale(0.5) rotate(220deg); opacity: 0; }
+        }
       `}</style>
-      {particles.map((p) => (
-        <ParticleEl key={p.id} p={p} duration={duration} />
-      ))}
+
+      {effectId === "rainbow" && <RainbowArc duration={duration} />}
+
+      {particles.map((p) =>
+        effectId === "rainbow" ? (
+          <RainbowSparkle key={p.id} p={p} duration={duration} />
+        ) : (
+          <ParticleEl key={p.id} p={p} duration={duration} />
+        ),
+      )}
     </div>
   );
+}
+
+function RainbowArc({ duration }: { duration: number }) {
+  const bands = RAINBOW_COLORS.slice(0, 7);
+  return (
+    <>
+      {/* soft full-screen color wash */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          background:
+            "linear-gradient(120deg, rgba(255,0,0,0.12), rgba(255,165,0,0.12), rgba(255,255,0,0.12), rgba(0,200,0,0.12), rgba(0,120,255,0.12), rgba(139,0,255,0.12))",
+          animation: `rainbow-shimmer ${duration + 300}ms ease-out forwards`,
+          mixBlendMode: "screen",
+        }}
+      />
+      {/* the arc itself */}
+      <div
+        style={{
+          position: "absolute",
+          left: "50%",
+          bottom: "-40vh",
+          width: "150vw",
+          height: "150vw",
+          borderRadius: "50%",
+          background: `conic-gradient(from 270deg at 50% 50%, transparent 0deg, transparent 200deg, ${bands
+            .map((c, i) => `${c} ${200 + i * 8}deg`)
+            .join(", ")}, transparent ${200 + bands.length * 8 + 40}deg)`,
+          WebkitMaskImage:
+            "radial-gradient(circle at 50% 50%, transparent 44%, #000 45%, #000 50%, transparent 51%)",
+          maskImage:
+            "radial-gradient(circle at 50% 50%, transparent 44%, #000 45%, #000 50%, transparent 51%)",
+          transform: "translate(-50%, 40%)",
+          animation: `rainbow-arc-in ${duration + 200}ms cubic-bezier(0.22,1,0.36,1) forwards`,
+          filter: "blur(0.5px) saturate(1.4)",
+        }}
+      />
+    </>
+  );
+}
+
+function RainbowSparkle({ p, duration }: { p: Particle; duration: number }) {
+  const style: React.CSSProperties = {
+    position: "absolute",
+    left: `${p.x}%`,
+    top: `${p.y}%`,
+    fontSize: (p.size ?? 12) + 8,
+    animation: `rainbow-sparkle ${duration}ms ease-out forwards`,
+    animationDelay: `${(p.id % 6) * 60}ms`,
+    filter: `drop-shadow(0 0 6px ${p.color})`,
+    pointerEvents: "none",
+    lineHeight: 1,
+  };
+  return <div style={style}>{p.emoji ?? "✨"}</div>;
 }
