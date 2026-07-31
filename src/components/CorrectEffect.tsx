@@ -59,10 +59,40 @@ function ParticleEl({ p, duration }: { p: Particle; duration: number }) {
   return <div style={style}>{p.emoji ?? ""}</div>;
 }
 
+type Burst = {
+  id: number;
+  x: number;
+  y: number;
+  delay: number;
+  color: string;
+  sparks: { angle: number; distance: number; color: string; size: number }[];
+};
+
+function makeBursts(count: number): Burst[] {
+  return Array.from({ length: count }, (_, i) => {
+    const sparkCount = 18 + Math.floor(Math.random() * 8);
+    const base = FIREWORK_COLORS[i % FIREWORK_COLORS.length];
+    return {
+      id: i,
+      x: Math.random() * 70 + 15,
+      y: Math.random() * 45 + 10,
+      delay: Math.random() * 700,
+      color: base,
+      sparks: Array.from({ length: sparkCount }, (_, s) => ({
+        angle: (360 / sparkCount) * s + Math.random() * 8,
+        distance: Math.random() * 70 + 90,
+        color: Math.random() > 0.4 ? base : FIREWORK_COLORS[Math.floor(Math.random() * FIREWORK_COLORS.length)],
+        size: Math.random() * 4 + 4,
+      })),
+    };
+  });
+}
+
 type EffectProps = { effectId: string; triggerKey: number };
 
 export function CorrectEffect({ effectId, triggerKey }: EffectProps) {
   const [particles, setParticles] = useState<Particle[]>([]);
+  const [bursts, setBursts] = useState<Burst[]>([]);
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -70,6 +100,7 @@ export function CorrectEffect({ effectId, triggerKey }: EffectProps) {
     setVisible(true);
 
     let ps: Particle[] = [];
+    let bs: Burst[] = [];
     switch (effectId) {
       case "confetti":   ps = makeParticles(45, undefined, CONFETTI_COLORS); break;
       case "coins":      ps = makeParticles(30, ["💰","🪙","✨"], COIN_COLORS); break;
@@ -77,7 +108,7 @@ export function CorrectEffect({ effectId, triggerKey }: EffectProps) {
       case "hearts":     ps = makeParticles(30, ["💖","💗","💕","❤️"], HEART_COLORS); break;
       case "lightning":  ps = makeParticles(20, ["⚡","✨","💥"], LIGHTNING_COLORS); break;
       case "sakura":     ps = makeParticles(40, ["🌸","🌺","🌷"], SAKURA_COLORS); break;
-      case "fireworks":  ps = makeParticles(55, ["🎆","✨","💥","🌟"], FIREWORK_COLORS); break;
+      case "fireworks":  bs = makeBursts(7); ps = makeParticles(18, ["✨","💫"], FIREWORK_COLORS); break;
       case "snow":       ps = makeParticles(45, ["❄️","🌨️","⛄"], SNOW_COLORS); break;
       case "butterfly":  ps = makeParticles(25, ["🦋","🌸","✨"], BUTTERFLY_COLORS); break;
       case "party":      ps = makeParticles(55, ["🎊","🎉","🎈","✨","🌟"], PARTY_COLORS); break;
@@ -86,14 +117,15 @@ export function CorrectEffect({ effectId, triggerKey }: EffectProps) {
     }
 
     setParticles(ps);
-    const duration = effectId === "snow" ? 1600 : effectId === "rainbow" || effectId === "fireworks" ? 1400 : 1100;
-    const t = setTimeout(() => { setVisible(false); setParticles([]); }, duration + 200);
+    setBursts(bs);
+    const duration = effectId === "snow" ? 1600 : effectId === "fireworks" ? 2000 : effectId === "rainbow" ? 1400 : 1100;
+    const t = setTimeout(() => { setVisible(false); setParticles([]); setBursts([]); }, duration + 300);
     return () => clearTimeout(t);
   }, [triggerKey, effectId]);
 
-  if (!visible || particles.length === 0) return null;
+  if (!visible || (particles.length === 0 && bursts.length === 0)) return null;
 
-  const duration = effectId === "snow" ? 1600 : effectId === "rainbow" || effectId === "fireworks" ? 1400 : 1100;
+  const duration = effectId === "snow" ? 1600 : effectId === "fireworks" ? 2000 : effectId === "rainbow" ? 1400 : 1100;
 
   return (
     <div className="pointer-events-none fixed inset-0 overflow-hidden z-50">
@@ -102,6 +134,27 @@ export function CorrectEffect({ effectId, triggerKey }: EffectProps) {
           0%   { transform: rotate(0deg) translateY(0) scale(1); opacity: 1; }
           80%  { opacity: 1; }
           100% { transform: rotate(var(--spin, 360deg)) translateY(var(--fall-dist, 80px)) scale(0.4); opacity: 0; }
+        }
+        @keyframes firework-launch {
+          0%   { transform: translateY(60vh) scale(0.6); opacity: 0; }
+          8%   { opacity: 1; }
+          22%  { transform: translateY(0) scale(1); opacity: 1; }
+          24%  { opacity: 0; }
+          100% { opacity: 0; }
+        }
+        @keyframes firework-spark {
+          0%   { transform: translate(0,0) scale(0); opacity: 0; }
+          24%  { transform: translate(0,0) scale(0); opacity: 0; }
+          30%  { opacity: 1; transform: translate(calc(var(--dx) * 0.3), calc(var(--dy) * 0.3)) scale(1.2); }
+          70%  { opacity: 1; }
+          100% { transform: translate(var(--dx), calc(var(--dy) + 40px)) scale(0.3); opacity: 0; }
+        }
+        @keyframes firework-flash {
+          0%   { transform: scale(0); opacity: 0; }
+          24%  { transform: scale(0); opacity: 0; }
+          30%  { transform: scale(1.6); opacity: 0.9; }
+          45%  { transform: scale(2.4); opacity: 0; }
+          100% { opacity: 0; }
         }
         @keyframes rainbow-arc-in {
           0%   { transform: translate(-50%, 40%) scale(0.6); opacity: 0; }
@@ -123,6 +176,9 @@ export function CorrectEffect({ effectId, triggerKey }: EffectProps) {
 
       {effectId === "rainbow" && <RainbowArc duration={duration} />}
 
+      {effectId === "fireworks" &&
+        bursts.map((b) => <FireworkBurst key={b.id} b={b} duration={duration} />)}
+
       {particles.map((p) =>
         effectId === "rainbow" ? (
           <RainbowSparkle key={p.id} p={p} duration={duration} />
@@ -130,6 +186,69 @@ export function CorrectEffect({ effectId, triggerKey }: EffectProps) {
           <ParticleEl key={p.id} p={p} duration={duration} />
         ),
       )}
+    </div>
+  );
+}
+
+function FireworkBurst({ b, duration }: { b: Burst; duration: number }) {
+  return (
+    <div
+      style={{
+        position: "absolute",
+        left: `${b.x}%`,
+        top: `${b.y}%`,
+        width: 0,
+        height: 0,
+      }}
+    >
+      {/* rising launch trail */}
+      <div
+        style={{
+          position: "absolute",
+          width: 4,
+          height: 14,
+          borderRadius: 4,
+          background: b.color,
+          boxShadow: `0 0 8px ${b.color}`,
+          transform: "translate(-50%, -50%)",
+          animation: `firework-launch ${duration}ms ease-out ${b.delay}ms forwards`,
+        }}
+      />
+      {/* center flash on explosion */}
+      <div
+        style={{
+          position: "absolute",
+          width: 26,
+          height: 26,
+          borderRadius: "50%",
+          background: `radial-gradient(circle, #fff, ${b.color} 60%, transparent 70%)`,
+          transform: "translate(-50%, -50%)",
+          animation: `firework-flash ${duration}ms ease-out ${b.delay}ms forwards`,
+        }}
+      />
+      {/* radial sparks */}
+      {b.sparks.map((s, i) => {
+        const rad = (s.angle * Math.PI) / 180;
+        const dx = Math.cos(rad) * s.distance;
+        const dy = Math.sin(rad) * s.distance;
+        return (
+          <div
+            key={i}
+            style={{
+              position: "absolute",
+              width: s.size,
+              height: s.size,
+              borderRadius: "50%",
+              background: s.color,
+              boxShadow: `0 0 6px ${s.color}`,
+              transform: "translate(-50%, -50%)",
+              animation: `firework-spark ${duration}ms cubic-bezier(0.15,0.6,0.3,1) ${b.delay}ms forwards`,
+              ["--dx" as string]: `${dx}px`,
+              ["--dy" as string]: `${dy}px`,
+            }}
+          />
+        );
+      })}
     </div>
   );
 }
