@@ -57,13 +57,17 @@ function Index() {
     setAnswer("");
     setSpinning(true);
     const a = Math.floor(Math.random() * 8) + 2;
-    const b = Math.floor(Math.random() * 8) + 2;
+    // 9단은 곱하는 수를 20까지 확장
+    const bMax = a === 9 ? 20 : 9;
+    const b = Math.floor(Math.random() * (bMax - 1)) + 2;
     const start = Date.now();
     const duration = 600;
     const tick = () => {
       const elapsed = Date.now() - start;
-      setSpinA(Math.floor(Math.random() * 8) + 2);
-      setSpinB(Math.floor(Math.random() * 8) + 2);
+      const spinAVal = Math.floor(Math.random() * 8) + 2;
+      const spinBMax = spinAVal === 9 ? 20 : 9;
+      setSpinA(spinAVal);
+      setSpinB(Math.floor(Math.random() * (spinBMax - 1)) + 2);
       if (elapsed < duration) {
         const delay = 40 + (elapsed / duration) * 120;
         setTimeout(tick, delay);
@@ -235,8 +239,12 @@ function Index() {
                       inputMode="numeric"
                       value={answer}
                       onChange={(e) => setAnswer(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
-                      disabled={verdict !== null}
+                      onKeyDown={(e) => {
+                        if (e.key !== "Enter" || e.nativeEvent.isComposing || e.keyCode === 229) return;
+                        if (verdict === "correct") generate();
+                        else if (verdict === null) submit();
+                      }}
+                      readOnly={verdict !== null}
                       placeholder="정답 입력"
                       className="h-14 w-40 rounded-2xl border-2 border-foreground bg-background text-center text-3xl font-black tabular-nums outline-none focus:ring-4 focus:ring-primary/40 disabled:opacity-70"
                       style={{ boxShadow: "var(--shadow-pop-sm)" }}

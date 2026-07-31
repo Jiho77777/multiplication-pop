@@ -39,7 +39,37 @@ function makeParticles(count: number, emojis?: string[], colors?: string[]): Par
   }));
 }
 
-function ParticleEl({ p, duration }: { p: Particle; duration: number }) {
+// which animation style each effect uses
+const KIND: Record<string, "flutter" | "rise" | "twinkle" | "drift"> = {
+  confetti: "flutter",
+  party: "flutter",
+  hearts: "rise",
+  butterfly: "rise",
+  stars: "twinkle",
+  diamond: "twinkle",
+  coins: "twinkle",
+  sakura: "drift",
+  snow: "drift",
+  lightning: "flutter",
+};
+
+const ANIM: Record<string, string> = {
+  flutter: "particle-flutter",
+  rise: "particle-rise",
+  twinkle: "particle-twinkle",
+  drift: "particle-drift",
+};
+
+const EASE: Record<string, string> = {
+  flutter: "cubic-bezier(0.4,0,0.6,1)",
+  rise: "ease-out",
+  twinkle: "ease-in-out",
+  drift: "ease-in-out",
+};
+
+function ParticleEl({ p, duration, kind }: { p: Particle; duration: number; kind: keyof typeof ANIM }) {
+  const sway = (p.id % 2 === 0 ? 1 : -1) * (p.speed * 18 + 8);
+  const fall = kind === "drift" ? p.speed * 90 + 140 : p.speed * 80 + 80;
   const style: React.CSSProperties = {
     position: "absolute",
     left: `${p.x}%`,
@@ -48,10 +78,12 @@ function ParticleEl({ p, duration }: { p: Particle; duration: number }) {
     height: p.emoji ? undefined : p.size,
     fontSize: p.emoji ? p.size + 8 : undefined,
     backgroundColor: p.emoji ? undefined : p.color,
+    boxShadow: p.emoji ? undefined : `0 0 5px ${p.color}80`,
     borderRadius: "2px",
     transform: `rotate(${p.angle}deg)`,
-    animation: `particle-fall ${duration}ms ease-in forwards`,
-    ["--fall-dist" as string]: `${p.speed * 80 + 60}px`,
+    animation: `${ANIM[kind]} ${duration}ms ${EASE[kind]} ${(p.id % 5) * 45}ms forwards`,
+    ["--fall-dist" as string]: `${fall}px`,
+    ["--sway" as string]: `${sway}px`,
     ["--spin" as string]: `${p.spin}deg`,
     pointerEvents: "none",
     lineHeight: 1,
@@ -59,10 +91,40 @@ function ParticleEl({ p, duration }: { p: Particle; duration: number }) {
   return <div style={style}>{p.emoji ?? ""}</div>;
 }
 
+type Burst = {
+  id: number;
+  x: number;
+  y: number;
+  delay: number;
+  color: string;
+  sparks: { angle: number; distance: number; color: string; size: number }[];
+};
+
+function makeBursts(count: number): Burst[] {
+  return Array.from({ length: count }, (_, i) => {
+    const sparkCount = 18 + Math.floor(Math.random() * 8);
+    const base = FIREWORK_COLORS[i % FIREWORK_COLORS.length];
+    return {
+      id: i,
+      x: Math.random() * 70 + 15,
+      y: Math.random() * 45 + 10,
+      delay: Math.random() * 700,
+      color: base,
+      sparks: Array.from({ length: sparkCount }, (_, s) => ({
+        angle: (360 / sparkCount) * s + Math.random() * 8,
+        distance: Math.random() * 70 + 90,
+        color: Math.random() > 0.4 ? base : FIREWORK_COLORS[Math.floor(Math.random() * FIREWORK_COLORS.length)],
+        size: Math.random() * 4 + 4,
+      })),
+    };
+  });
+}
+
 type EffectProps = { effectId: string; triggerKey: number };
 
 export function CorrectEffect({ effectId, triggerKey }: EffectProps) {
   const [particles, setParticles] = useState<Particle[]>([]);
+  const [bursts, setBursts] = useState<Burst[]>([]);
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -70,6 +132,7 @@ export function CorrectEffect({ effectId, triggerKey }: EffectProps) {
     setVisible(true);
 
     let ps: Particle[] = [];
+    let bs: Burst[] = [];
     switch (effectId) {
       case "confetti":   ps = makeParticles(45, undefined, CONFETTI_COLORS); break;
       case "coins":      ps = makeParticles(30, ["💰","🪙","✨"], COIN_COLORS); break;
@@ -77,7 +140,7 @@ export function CorrectEffect({ effectId, triggerKey }: EffectProps) {
       case "hearts":     ps = makeParticles(30, ["💖","💗","💕","❤️"], HEART_COLORS); break;
       case "lightning":  ps = makeParticles(20, ["⚡","✨","💥"], LIGHTNING_COLORS); break;
       case "sakura":     ps = makeParticles(40, ["🌸","🌺","🌷"], SAKURA_COLORS); break;
-      case "fireworks":  ps = makeParticles(55, ["🎆","✨","💥","🌟"], FIREWORK_COLORS); break;
+      case "fireworks":  bs = makeBursts(7); ps = makeParticles(18, ["✨","💫"], FIREWORK_COLORS); break;
       case "snow":       ps = makeParticles(45, ["❄️","🌨️","⛄"], SNOW_COLORS); break;
       case "butterfly":  ps = makeParticles(25, ["🦋","🌸","✨"], BUTTERFLY_COLORS); break;
       case "party":      ps = makeParticles(55, ["🎊","🎉","🎈","✨","🌟"], PARTY_COLORS); break;
@@ -86,27 +149,230 @@ export function CorrectEffect({ effectId, triggerKey }: EffectProps) {
     }
 
     setParticles(ps);
-    const duration = effectId === "snow" ? 1600 : effectId === "rainbow" || effectId === "fireworks" ? 1400 : 1100;
-    const t = setTimeout(() => { setVisible(false); setParticles([]); }, duration + 200);
+    setBursts(bs);
+    const duration = effectId === "snow" ? 1600 : effectId === "fireworks" ? 2000 : effectId === "rainbow" ? 1400 : 1100;
+    const t = setTimeout(() => { setVisible(false); setParticles([]); setBursts([]); }, duration + 300);
     return () => clearTimeout(t);
   }, [triggerKey, effectId]);
 
-  if (!visible || particles.length === 0) return null;
+  if (!visible || (particles.length === 0 && bursts.length === 0)) return null;
 
-  const duration = effectId === "snow" ? 1600 : effectId === "rainbow" || effectId === "fireworks" ? 1400 : 1100;
+  const duration = effectId === "snow" ? 1600 : effectId === "fireworks" ? 2000 : effectId === "rainbow" ? 1400 : 1100;
 
   return (
     <div className="pointer-events-none fixed inset-0 overflow-hidden z-50">
       <style>{`
-        @keyframes particle-fall {
-          0%   { transform: rotate(0deg) translateY(0) scale(1); opacity: 1; }
+        @keyframes particle-flutter {
+          0%   { transform: translate(0,0) rotate(0deg) scale(1); opacity: 1; }
           80%  { opacity: 1; }
-          100% { transform: rotate(var(--spin, 360deg)) translateY(var(--fall-dist, 80px)) scale(0.4); opacity: 0; }
+          100% { transform: translate(var(--sway,0), var(--fall-dist,120px)) rotate(var(--spin,360deg)) scale(0.55); opacity: 0; }
+        }
+        @keyframes particle-rise {
+          0%   { transform: translate(0,0) scale(0.4); opacity: 0; }
+          20%  { opacity: 1; transform: translate(0,-12px) scale(1.1); }
+          100% { transform: translate(var(--sway,0), calc(var(--fall-dist,180px) * -1)) scale(0.7); opacity: 0; }
+        }
+        @keyframes particle-twinkle {
+          0%   { transform: translateY(0) scale(0) rotate(0deg); opacity: 0; }
+          25%  { transform: translateY(12px) scale(1.25) rotate(90deg); opacity: 1; }
+          55%  { transform: translateY(26px) scale(0.85) rotate(160deg); opacity: 1; }
+          100% { transform: translate(var(--sway,0), var(--fall-dist,110px)) scale(0.4) rotate(260deg); opacity: 0; }
+        }
+        @keyframes particle-drift {
+          0%   { transform: translate(0,0) rotate(0deg) scale(0.8); opacity: 0; }
+          15%  { opacity: 1; scale: 1; }
+          50%  { transform: translate(calc(var(--sway,0) * -1), calc(var(--fall-dist,200px) * 0.5)) rotate(calc(var(--spin,180deg) * 0.5)); }
+          100% { transform: translate(var(--sway,0), var(--fall-dist,200px)) rotate(var(--spin,180deg)) scale(0.6); opacity: 0; }
+        }
+        @keyframes lightning-flash {
+          0%   { opacity: 0; }
+          6%   { opacity: 0.85; }
+          12%  { opacity: 0.05; }
+          20%  { opacity: 0.7; }
+          32%  { opacity: 0; }
+          100% { opacity: 0; }
+        }
+        @keyframes firework-launch {
+          0%   { transform: translateY(60vh) scale(0.6); opacity: 0; }
+          8%   { opacity: 1; }
+          22%  { transform: translateY(0) scale(1); opacity: 1; }
+          24%  { opacity: 0; }
+          100% { opacity: 0; }
+        }
+        @keyframes firework-spark {
+          0%   { transform: translate(0,0) scale(0); opacity: 0; }
+          24%  { transform: translate(0,0) scale(0); opacity: 0; }
+          30%  { opacity: 1; transform: translate(calc(var(--dx) * 0.3), calc(var(--dy) * 0.3)) scale(1.2); }
+          70%  { opacity: 1; }
+          100% { transform: translate(var(--dx), calc(var(--dy) + 40px)) scale(0.3); opacity: 0; }
+        }
+        @keyframes firework-flash {
+          0%   { transform: scale(0); opacity: 0; }
+          24%  { transform: scale(0); opacity: 0; }
+          30%  { transform: scale(1.6); opacity: 0.9; }
+          45%  { transform: scale(2.4); opacity: 0; }
+          100% { opacity: 0; }
+        }
+        @keyframes rainbow-arc-in {
+          0%   { transform: translate(-50%, 40%) scale(0.6); opacity: 0; }
+          30%  { opacity: 1; }
+          70%  { transform: translate(-50%, 0%) scale(1); opacity: 1; }
+          100% { transform: translate(-50%, -6%) scale(1.04); opacity: 0; }
+        }
+        @keyframes rainbow-shimmer {
+          0%   { opacity: 0; }
+          25%  { opacity: 0.55; }
+          100% { opacity: 0; }
+        }
+        @keyframes rainbow-sparkle {
+          0%   { transform: translateY(0) scale(0.4) rotate(0deg); opacity: 0; }
+          30%  { transform: translateY(-14px) scale(1.1) rotate(90deg); opacity: 1; }
+          100% { transform: translateY(-46px) scale(0.5) rotate(220deg); opacity: 0; }
         }
       `}</style>
-      {particles.map((p) => (
-        <ParticleEl key={p.id} p={p} duration={duration} />
-      ))}
+
+      {effectId === "rainbow" && <RainbowArc duration={duration} />}
+
+      {effectId === "lightning" && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background: "radial-gradient(circle at 50% 30%, rgba(255,247,150,0.9), rgba(255,235,59,0.35) 40%, transparent 70%)",
+            animation: `lightning-flash ${duration}ms ease-out forwards`,
+            mixBlendMode: "screen",
+          }}
+        />
+      )}
+
+      {effectId === "fireworks" &&
+        bursts.map((b) => <FireworkBurst key={b.id} b={b} duration={duration} />)}
+
+      {particles.map((p) =>
+        effectId === "rainbow" ? (
+          <RainbowSparkle key={p.id} p={p} duration={duration} />
+        ) : (
+          <ParticleEl key={p.id} p={p} duration={duration} kind={KIND[effectId] ?? "flutter"} />
+        ),
+      )}
     </div>
   );
+}
+
+function FireworkBurst({ b, duration }: { b: Burst; duration: number }) {
+  return (
+    <div
+      style={{
+        position: "absolute",
+        left: `${b.x}%`,
+        top: `${b.y}%`,
+        width: 0,
+        height: 0,
+      }}
+    >
+      {/* rising launch trail */}
+      <div
+        style={{
+          position: "absolute",
+          width: 4,
+          height: 14,
+          borderRadius: 4,
+          background: b.color,
+          boxShadow: `0 0 8px ${b.color}`,
+          transform: "translate(-50%, -50%)",
+          animation: `firework-launch ${duration}ms ease-out ${b.delay}ms forwards`,
+        }}
+      />
+      {/* center flash on explosion */}
+      <div
+        style={{
+          position: "absolute",
+          width: 26,
+          height: 26,
+          borderRadius: "50%",
+          background: `radial-gradient(circle, #fff, ${b.color} 60%, transparent 70%)`,
+          transform: "translate(-50%, -50%)",
+          animation: `firework-flash ${duration}ms ease-out ${b.delay}ms forwards`,
+        }}
+      />
+      {/* radial sparks */}
+      {b.sparks.map((s, i) => {
+        const rad = (s.angle * Math.PI) / 180;
+        const dx = Math.cos(rad) * s.distance;
+        const dy = Math.sin(rad) * s.distance;
+        return (
+          <div
+            key={i}
+            style={{
+              position: "absolute",
+              width: s.size,
+              height: s.size,
+              borderRadius: "50%",
+              background: s.color,
+              boxShadow: `0 0 6px ${s.color}`,
+              transform: "translate(-50%, -50%)",
+              animation: `firework-spark ${duration}ms cubic-bezier(0.15,0.6,0.3,1) ${b.delay}ms forwards`,
+              ["--dx" as string]: `${dx}px`,
+              ["--dy" as string]: `${dy}px`,
+            }}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+function RainbowArc({ duration }: { duration: number }) {
+  const bands = RAINBOW_COLORS.slice(0, 7);
+  return (
+    <>
+      {/* soft full-screen color wash */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          background:
+            "linear-gradient(120deg, rgba(255,0,0,0.12), rgba(255,165,0,0.12), rgba(255,255,0,0.12), rgba(0,200,0,0.12), rgba(0,120,255,0.12), rgba(139,0,255,0.12))",
+          animation: `rainbow-shimmer ${duration + 300}ms ease-out forwards`,
+          mixBlendMode: "screen",
+        }}
+      />
+      {/* the arc itself */}
+      <div
+        style={{
+          position: "absolute",
+          left: "50%",
+          bottom: "-40vh",
+          width: "150vw",
+          height: "150vw",
+          borderRadius: "50%",
+          background: `conic-gradient(from 270deg at 50% 50%, transparent 0deg, transparent 200deg, ${bands
+            .map((c, i) => `${c} ${200 + i * 8}deg`)
+            .join(", ")}, transparent ${200 + bands.length * 8 + 40}deg)`,
+          WebkitMaskImage:
+            "radial-gradient(circle at 50% 50%, transparent 44%, #000 45%, #000 50%, transparent 51%)",
+          maskImage:
+            "radial-gradient(circle at 50% 50%, transparent 44%, #000 45%, #000 50%, transparent 51%)",
+          transform: "translate(-50%, 40%)",
+          animation: `rainbow-arc-in ${duration + 200}ms cubic-bezier(0.22,1,0.36,1) forwards`,
+          filter: "blur(0.5px) saturate(1.4)",
+        }}
+      />
+    </>
+  );
+}
+
+function RainbowSparkle({ p, duration }: { p: Particle; duration: number }) {
+  const style: React.CSSProperties = {
+    position: "absolute",
+    left: `${p.x}%`,
+    top: `${p.y}%`,
+    fontSize: (p.size ?? 12) + 8,
+    animation: `rainbow-sparkle ${duration}ms ease-out forwards`,
+    animationDelay: `${(p.id % 6) * 60}ms`,
+    filter: `drop-shadow(0 0 6px ${p.color})`,
+    pointerEvents: "none",
+    lineHeight: 1,
+  };
+  return <div style={style}>{p.emoji ?? "✨"}</div>;
 }
