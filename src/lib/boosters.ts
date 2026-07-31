@@ -11,7 +11,7 @@ export const BOOSTERS: Booster[] = [
   {
     id: "x1",
     name: "기본",
-    price: 100,
+    price: 0,
     emoji: "🪙",
     description: "기본 포인트 (×1)",
     multiplier: 1,
@@ -35,7 +35,7 @@ export const BOOSTERS: Booster[] = [
   {
     id: "x1_75",
     name: "1.75배 포인트",
-    price: 1500,
+    price: 1600,
     emoji: "⚡",
     description: "정답 시 포인트 1.75배!",
     multiplier: 1.75,
