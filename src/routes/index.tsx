@@ -4,7 +4,6 @@ import { Home, Sparkles, Dice5, Coins, Check, X, ShoppingBag, RotateCcw } from "
 import {
   SKINS,
   DEFAULT_SKIN_ID,
-  loadPoints,
   savePoints,
   loadActive,
   saveActive,
@@ -43,7 +42,9 @@ function Index() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    setPoints(loadPoints());
+    // TEST: 코인 15000으로 강제 설정 (테스트 후 제거)
+    setPoints(15000);
+    savePoints(15000);
     setActiveSkin(loadActive());
     setActiveEffect(loadActiveEffect());
     setActiveBooster(loadActiveBooster());
