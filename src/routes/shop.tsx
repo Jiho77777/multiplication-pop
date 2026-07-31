@@ -465,10 +465,15 @@ const EFFECT_BG: Record<string, string> = {
 };
 
 const BOOSTER_BG: Record<string, string> = {
-  x1:    "bg-gradient-to-br from-zinc-100 to-zinc-200",
-  x1_5:  "bg-gradient-to-br from-amber-100 to-yellow-200",
-  x2:    "bg-gradient-to-br from-orange-100 to-red-200",
-  x3:    "bg-gradient-to-br from-yellow-200 to-amber-300",
+  x1:     "bg-gradient-to-br from-zinc-100 to-zinc-200",
+  x1_25:  "bg-gradient-to-br from-sky-50 to-blue-100",
+  x1_5:   "bg-gradient-to-br from-amber-100 to-yellow-200",
+  x1_75:  "bg-gradient-to-br from-yellow-100 to-orange-200",
+  x2:     "bg-gradient-to-br from-orange-100 to-red-200",
+  x2_5:   "bg-gradient-to-br from-red-100 to-orange-300",
+  x3:     "bg-gradient-to-br from-yellow-200 to-amber-300",
+  x4:     "bg-gradient-to-br from-amber-200 to-yellow-400",
+  x5:     "bg-gradient-to-br from-rose-100 to-red-300",
 };
 
 function EmptyState() {
