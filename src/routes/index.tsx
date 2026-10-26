@@ -56,16 +56,16 @@ function Index() {
     setVerdict(null);
     setAnswer("");
     setSpinning(true);
-    const a = Math.floor(Math.random() * 8) + 2;
+    const a = Math.floor(Math.random() * 10) + 2;
     // 9단은 곱하는 수를 20까지 확장
-    const bMax = a === 9 ? 20 : 9;
+    const bMax = a === 9 ? 20 : 11;
     const b = Math.floor(Math.random() * (bMax - 1)) + 2;
     const start = Date.now();
     const duration = 600;
     const tick = () => {
       const elapsed = Date.now() - start;
-      const spinAVal = Math.floor(Math.random() * 8) + 2;
-      const spinBMax = spinAVal === 9 ? 20 : 9;
+      const spinAVal = Math.floor(Math.random() * 10) + 2;
+      const spinBMax = spinAVal === 9 ? 20 : 11;
       setSpinA(spinAVal);
       setSpinB(Math.floor(Math.random() * (spinBMax - 1)) + 2);
       if (elapsed < duration) {
