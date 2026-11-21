@@ -1,5 +1,7 @@
 # Multiplication Pop!
 
+[플레이하기: 구구단 챌린지](https://multiplication-pop.vercel.app)
+
 버튼을 누르면 구구단 문제중 하나가 나오게(예. 3x7=?)이런식
 
 This project was built with [Lovable](https://lovable.dev).
