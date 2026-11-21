@@ -1,6 +1,27 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Hop as Home, Coins, Check, Lock, ShoppingBag, Sparkles, Zap, Rocket } from "lucide-react";
+import {
+  Hop as Home,
+  Coins,
+  Check,
+  Lock,
+  ShoppingBag,
+  Sparkles,
+  Zap,
+  Rocket,
+  FlaskConical,
+  ShieldCheck,
+  Timer,
+} from "lucide-react";
+import {
+  SHOP_ITEMS,
+  loadItemInventory,
+  saveItemInventory,
+  loadMultiplierUntil,
+  saveMultiplierUntil,
+  loadMistakeGuard,
+  saveMistakeGuard,
+} from "@/lib/items";
 import {
   SKINS,
   RARITY_LABEL,
@@ -31,15 +52,15 @@ import {
 export const Route = createFileRoute("/shop")({
   head: () => ({
     meta: [
-      { title: "스킨 숍 - 구구단 챌린지" },
-      { name: "description", content: "포인트로 배경 스킨과 이펙트를 구매하세요." },
+      { title: "숍 - 구구단 챌린지" },
+      { name: "description", content: "포인트로 스킨, 이펙트, 부스터와 물약을 구매하세요." },
     ],
   }),
   component: Shop,
 });
 
 type ItemFilter = "all" | "owned" | "locked";
-type ShopTab = "skins" | "effects" | "boosters";
+type ShopTab = "skins" | "effects" | "boosters" | "items";
 
 const FILTER_LABELS: Record<ItemFilter, string> = {
   all: "전체",
@@ -58,6 +79,10 @@ function Shop() {
   // boosters
   const [ownedBoosters, setOwnedBoosters] = useState<string[]>([]);
   const [activeBooster, setActiveBooster] = useState("x1");
+  // consumable items
+  const [itemInventory, setItemInventory] = useState<Record<string, number>>({});
+  const [multiplierUntil, setMultiplierUntil] = useState(0);
+  const [mistakeGuard, setMistakeGuard] = useState(false);
   // ui
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
   const [filter, setFilter] = useState<ItemFilter>("all");
@@ -72,6 +97,9 @@ function Shop() {
     setActiveEffect(loadActiveEffect());
     setOwnedBoosters(loadOwnedBoosters());
     setActiveBooster(loadActiveBooster());
+    setItemInventory(loadItemInventory());
+    setMultiplierUntil(loadMultiplierUntil());
+    setMistakeGuard(loadMistakeGuard());
   }, []);
 
   const showToast = (msg: string, ok: boolean) => {
@@ -86,11 +114,18 @@ function Shop() {
       showToast("✅ 스킨 적용!", true);
       return;
     }
-    if (points < price) { showToast("❌ 포인트가 부족해요", false); return; }
+    if (points < price) {
+      showToast("❌ 포인트가 부족해요", false);
+      return;
+    }
     const newPts = points - price;
     const newOwned = [...owned, id];
-    setPoints(newPts); setOwned(newOwned); setActive(id);
-    savePoints(newPts); saveOwned(newOwned); saveActive(id);
+    setPoints(newPts);
+    setOwned(newOwned);
+    setActive(id);
+    savePoints(newPts);
+    saveOwned(newOwned);
+    saveActive(id);
     setJustBought(id);
     setTimeout(() => setJustBought(null), 800);
     showToast("🎉 구매 완료!", true);
@@ -103,11 +138,18 @@ function Shop() {
       showToast("✅ 이펙트 적용!", true);
       return;
     }
-    if (points < price) { showToast("❌ 포인트가 부족해요", false); return; }
+    if (points < price) {
+      showToast("❌ 포인트가 부족해요", false);
+      return;
+    }
     const newPts = points - price;
     const newOwned = [...ownedEffects, id];
-    setPoints(newPts); setOwnedEffects(newOwned); setActiveEffect(id);
-    savePoints(newPts); saveOwnedEffects(newOwned); saveActiveEffect(id);
+    setPoints(newPts);
+    setOwnedEffects(newOwned);
+    setActiveEffect(id);
+    savePoints(newPts);
+    saveOwnedEffects(newOwned);
+    saveActiveEffect(id);
     setJustBought(id);
     setTimeout(() => setJustBought(null), 800);
     showToast("🎉 구매 완료!", true);
@@ -120,14 +162,60 @@ function Shop() {
       showToast("✅ 부스터 적용!", true);
       return;
     }
-    if (points < price) { showToast("❌ 포인트가 부족해요", false); return; }
+    if (points < price) {
+      showToast("❌ 포인트가 부족해요", false);
+      return;
+    }
     const newPts = points - price;
     const newOwned = [...ownedBoosters, id];
-    setPoints(newPts); setOwnedBoosters(newOwned); setActiveBooster(id);
-    savePoints(newPts); saveOwnedBoosters(newOwned); saveActiveBooster(id);
+    setPoints(newPts);
+    setOwnedBoosters(newOwned);
+    setActiveBooster(id);
+    savePoints(newPts);
+    saveOwnedBoosters(newOwned);
+    saveActiveBooster(id);
     setJustBought(id);
     setTimeout(() => setJustBought(null), 800);
     showToast("🎉 구매 완료!", true);
+  };
+
+  const buyItem = (id: string, price: number) => {
+    if (points < price) {
+      showToast("포인트가 부족해요", false);
+      return;
+    }
+    const newPoints = points - price;
+    const newInventory = { ...itemInventory, [id]: (itemInventory[id] ?? 0) + 1 };
+    setPoints(newPoints);
+    setItemInventory(newInventory);
+    savePoints(newPoints);
+    saveItemInventory(newInventory);
+    setJustBought(id);
+    setTimeout(() => setJustBought(null), 800);
+    showToast("구매 완료! 가방에 보관했어요", true);
+  };
+
+  const activateItem = (id: string) => {
+    const item = SHOP_ITEMS.find((candidate) => candidate.id === id);
+    if (!item || (itemInventory[id] ?? 0) <= 0) return;
+    if (item.kind === "mistake_guard" && mistakeGuard) {
+      showToast("실수 방지 효과가 이미 활성화되어 있어요", false);
+      return;
+    }
+
+    const newInventory = { ...itemInventory, [id]: itemInventory[id] - 1 };
+    setItemInventory(newInventory);
+    saveItemInventory(newInventory);
+    if (item.kind === "multiplier") {
+      const newUntil = Math.max(Date.now(), multiplierUntil) + (item.durationMs ?? 60_000);
+      setMultiplierUntil(newUntil);
+      saveMultiplierUntil(newUntil);
+      showToast("1분간 정답 포인트 1.5배!", true);
+    } else {
+      setMistakeGuard(true);
+      saveMistakeGuard(true);
+      showToast("다음 오답 1회를 막아줘요", true);
+    }
   };
 
   const filteredSkins = SKINS.filter((s) => {
@@ -155,7 +243,9 @@ function Shop() {
       >
         <div
           className={`rounded-2xl border-2 border-foreground px-6 py-3 text-sm font-black shadow-lg ${
-            toast?.ok ? "bg-primary text-primary-foreground" : "bg-destructive text-destructive-foreground"
+            toast?.ok
+              ? "bg-primary text-primary-foreground"
+              : "bg-destructive text-destructive-foreground"
           }`}
         >
           {toast?.msg}
@@ -188,12 +278,12 @@ function Shop() {
             <ShoppingBag className="h-4 w-4" /> Shop
           </div>
           <h1 className="text-4xl font-black tracking-tight md:text-5xl">
-            스킨 <span className="text-primary">숍</span>
+            아이템 <span className="text-primary">숍</span>
           </h1>
         </div>
 
         {/* Shop tabs */}
-        <div className="mb-5 flex justify-center gap-3">
+        <div className="mb-5 flex flex-wrap justify-center gap-2">
           <button
             onClick={() => setTab("skins")}
             className={`flex items-center gap-2 rounded-2xl border-2 border-foreground px-6 py-2.5 text-sm font-black transition-transform hover:-translate-y-0.5 active:translate-y-0 ${
@@ -230,10 +320,24 @@ function Shop() {
               {ownedBoosters.length}/{BOOSTERS.length}
             </span>
           </button>
+          <button
+            onClick={() => setTab("items")}
+            className={`flex items-center gap-2 rounded-2xl border-2 border-foreground px-6 py-2.5 text-sm font-black transition-transform hover:-translate-y-0.5 active:translate-y-0 ${
+              tab === "items" ? "bg-primary text-primary-foreground" : "bg-card text-foreground"
+            }`}
+            style={{ boxShadow: "var(--shadow-pop-sm)" }}
+          >
+            <FlaskConical className="h-4 w-4" /> 아이템
+            <span className="rounded-full bg-foreground/10 px-1.5 py-0.5 text-xs">
+              {Object.values(itemInventory).reduce((total, count) => total + count, 0)}
+            </span>
+          </button>
         </div>
 
         {/* Filter tabs — boosters 탭에서는 숨김 */}
-        <div className={`mb-6 flex justify-center gap-2 ${tab === "boosters" ? "hidden" : ""}`}>
+        <div
+          className={`mb-6 flex justify-center gap-2 ${tab === "boosters" || tab === "items" ? "hidden" : ""}`}
+        >
           {(["all", "owned", "locked"] as ItemFilter[]).map((f) => (
             <button
               key={f}
@@ -249,8 +353,8 @@ function Shop() {
         </div>
 
         {/* ── SKINS ── */}
-        {tab === "skins" && (
-          filteredSkins.length === 0 ? (
+        {tab === "skins" &&
+          (filteredSkins.length === 0 ? (
             <EmptyState />
           ) : (
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -265,8 +369,13 @@ function Shop() {
                     className={`flex flex-col overflow-hidden rounded-3xl border-2 border-foreground bg-card transition-transform duration-200 ${isBought ? "scale-95" : ""} ${isActive ? "ring-4 ring-primary ring-offset-2" : ""}`}
                     style={{ boxShadow: "var(--shadow-pop-sm)" }}
                   >
-                    <div className="relative h-36 w-full border-b-2 border-foreground" style={{ background: s.preview }}>
-                      <span className={`absolute left-3 top-3 rounded-full px-2.5 py-1 text-xs font-black ${RARITY_COLOR[s.rarity as Rarity]}`}>
+                    <div
+                      className="relative h-36 w-full border-b-2 border-foreground"
+                      style={{ background: s.preview }}
+                    >
+                      <span
+                        className={`absolute left-3 top-3 rounded-full px-2.5 py-1 text-xs font-black ${RARITY_COLOR[s.rarity as Rarity]}`}
+                      >
                         {RARITY_LABEL[s.rarity as Rarity]}
                       </span>
                       {isActive && (
@@ -278,22 +387,31 @@ function Shop() {
                         <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-[1px]">
                           <div className="flex flex-col items-center gap-1">
                             <Lock className="h-6 w-6 text-white drop-shadow" />
-                            <span className="text-xs font-black text-white drop-shadow">{s.price.toLocaleString()} P</span>
+                            <span className="text-xs font-black text-white drop-shadow">
+                              {s.price.toLocaleString()} P
+                            </span>
                           </div>
                         </div>
                       )}
-                      <div className="absolute bottom-2 right-3 text-2xl drop-shadow">{s.emoji}</div>
+                      <div className="absolute bottom-2 right-3 text-2xl drop-shadow">
+                        {s.emoji}
+                      </div>
                     </div>
                     <div className="flex flex-1 flex-col gap-3 p-4">
                       <div className="flex items-center justify-between">
                         <h3 className="text-lg font-black">{s.name}</h3>
                         {isOwned ? (
-                          <span className={`rounded-full px-2.5 py-1 text-xs font-black ${isActive ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"}`}>
+                          <span
+                            className={`rounded-full px-2.5 py-1 text-xs font-black ${isActive ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"}`}
+                          >
                             {isActive ? "사용중" : "보유중"}
                           </span>
                         ) : (
-                          <span className={`flex items-center gap-1 text-sm font-black ${canAfford ? "text-primary" : "text-muted-foreground"}`}>
-                            <Coins className="h-3.5 w-3.5" />{s.price.toLocaleString()}
+                          <span
+                            className={`flex items-center gap-1 text-sm font-black ${canAfford ? "text-primary" : "text-muted-foreground"}`}
+                          >
+                            <Coins className="h-3.5 w-3.5" />
+                            {s.price.toLocaleString()}
                           </span>
                         )}
                       </div>
@@ -303,19 +421,32 @@ function Shop() {
                         className={`mt-auto flex h-11 items-center justify-center gap-2 rounded-xl border-2 border-foreground text-sm font-black transition-transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-40 disabled:hover:translate-y-0 ${isActive ? "bg-secondary text-secondary-foreground" : "bg-primary text-primary-foreground"}`}
                         style={{ boxShadow: "var(--shadow-pop-sm)" }}
                       >
-                        {isActive ? <><Check className="h-4 w-4" strokeWidth={3} /> 적용됨</> : isOwned ? "사용하기" : canAfford ? <><Coins className="h-4 w-4" /> 구매하기</> : <><Lock className="h-4 w-4" /> 포인트 부족</>}
+                        {isActive ? (
+                          <>
+                            <Check className="h-4 w-4" strokeWidth={3} /> 적용됨
+                          </>
+                        ) : isOwned ? (
+                          "사용하기"
+                        ) : canAfford ? (
+                          <>
+                            <Coins className="h-4 w-4" /> 구매하기
+                          </>
+                        ) : (
+                          <>
+                            <Lock className="h-4 w-4" /> 포인트 부족
+                          </>
+                        )}
                       </button>
                     </div>
                   </div>
                 );
               })}
             </div>
-          )
-        )}
+          ))}
 
         {/* ── EFFECTS ── */}
-        {tab === "effects" && (
-          filteredEffects.length === 0 ? (
+        {tab === "effects" &&
+          (filteredEffects.length === 0 ? (
             <EmptyState />
           ) : (
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -331,8 +462,12 @@ function Shop() {
                     style={{ boxShadow: "var(--shadow-pop-sm)" }}
                   >
                     {/* Preview area */}
-                    <div className={`relative flex h-36 w-full items-center justify-center border-b-2 border-foreground ${EFFECT_BG[e.id] ?? "bg-muted"}`}>
-                      <span className={`absolute left-3 top-3 rounded-full px-2.5 py-1 text-xs font-black ${RARITY_COLOR[e.rarity as Rarity]}`}>
+                    <div
+                      className={`relative flex h-36 w-full items-center justify-center border-b-2 border-foreground ${EFFECT_BG[e.id] ?? "bg-muted"}`}
+                    >
+                      <span
+                        className={`absolute left-3 top-3 rounded-full px-2.5 py-1 text-xs font-black ${RARITY_COLOR[e.rarity as Rarity]}`}
+                      >
                         {RARITY_LABEL[e.rarity as Rarity]}
                       </span>
                       {isActive && (
@@ -344,7 +479,9 @@ function Shop() {
                         <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-[1px]">
                           <div className="flex flex-col items-center gap-1">
                             <Lock className="h-6 w-6 text-white drop-shadow" />
-                            <span className="text-xs font-black text-white drop-shadow">{e.price.toLocaleString()} P</span>
+                            <span className="text-xs font-black text-white drop-shadow">
+                              {e.price.toLocaleString()} P
+                            </span>
                           </div>
                         </div>
                       )}
@@ -357,12 +494,17 @@ function Shop() {
                           <p className="text-xs text-muted-foreground">{e.description}</p>
                         </div>
                         {isOwned ? (
-                          <span className={`rounded-full px-2.5 py-1 text-xs font-black ${isActive ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"}`}>
+                          <span
+                            className={`rounded-full px-2.5 py-1 text-xs font-black ${isActive ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"}`}
+                          >
                             {isActive ? "사용중" : "보유중"}
                           </span>
                         ) : (
-                          <span className={`flex items-center gap-1 text-sm font-black ${canAfford ? "text-primary" : "text-muted-foreground"}`}>
-                            <Coins className="h-3.5 w-3.5" />{e.price.toLocaleString()}
+                          <span
+                            className={`flex items-center gap-1 text-sm font-black ${canAfford ? "text-primary" : "text-muted-foreground"}`}
+                          >
+                            <Coins className="h-3.5 w-3.5" />
+                            {e.price.toLocaleString()}
                           </span>
                         )}
                       </div>
@@ -372,15 +514,28 @@ function Shop() {
                         className={`mt-auto flex h-11 items-center justify-center gap-2 rounded-xl border-2 border-foreground text-sm font-black transition-transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-40 disabled:hover:translate-y-0 ${isActive ? "bg-secondary text-secondary-foreground" : "bg-primary text-primary-foreground"}`}
                         style={{ boxShadow: "var(--shadow-pop-sm)" }}
                       >
-                        {isActive ? <><Check className="h-4 w-4" strokeWidth={3} /> 적용됨</> : isOwned ? "사용하기" : canAfford ? <><Zap className="h-4 w-4" /> 구매하기</> : <><Lock className="h-4 w-4" /> 포인트 부족</>}
+                        {isActive ? (
+                          <>
+                            <Check className="h-4 w-4" strokeWidth={3} /> 적용됨
+                          </>
+                        ) : isOwned ? (
+                          "사용하기"
+                        ) : canAfford ? (
+                          <>
+                            <Zap className="h-4 w-4" /> 구매하기
+                          </>
+                        ) : (
+                          <>
+                            <Lock className="h-4 w-4" /> 포인트 부족
+                          </>
+                        )}
                       </button>
                     </div>
                   </div>
                 );
               })}
             </div>
-          )
-        )}
+          ))}
 
         {/* ── BOOSTERS ── */}
         {tab === "boosters" && (
@@ -396,7 +551,9 @@ function Shop() {
                   className={`flex flex-col overflow-hidden rounded-3xl border-2 border-foreground bg-card transition-transform duration-200 ${isBought ? "scale-95" : ""} ${isActive ? "ring-4 ring-primary ring-offset-2" : ""}`}
                   style={{ boxShadow: "var(--shadow-pop-sm)" }}
                 >
-                  <div className={`relative flex h-36 w-full flex-col items-center justify-center gap-2 border-b-2 border-foreground ${BOOSTER_BG[b.id] ?? "bg-muted"}`}>
+                  <div
+                    className={`relative flex h-36 w-full flex-col items-center justify-center gap-2 border-b-2 border-foreground ${BOOSTER_BG[b.id] ?? "bg-muted"}`}
+                  >
                     {isActive && (
                       <div className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow">
                         <Check className="h-4 w-4" strokeWidth={3} />
@@ -406,12 +563,16 @@ function Shop() {
                       <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-[1px]">
                         <div className="flex flex-col items-center gap-1">
                           <Lock className="h-6 w-6 text-white drop-shadow" />
-                          <span className="text-xs font-black text-white drop-shadow">{b.price.toLocaleString()} P</span>
+                          <span className="text-xs font-black text-white drop-shadow">
+                            {b.price.toLocaleString()} P
+                          </span>
                         </div>
                       </div>
                     )}
                     <span className="text-5xl drop-shadow-lg">{b.emoji}</span>
-                    <span className="text-lg font-black text-foreground drop-shadow">×{b.multiplier}</span>
+                    <span className="text-lg font-black text-foreground drop-shadow">
+                      ×{b.multiplier}
+                    </span>
                   </div>
                   <div className="flex flex-1 flex-col gap-3 p-4">
                     <div className="flex items-center justify-between">
@@ -420,12 +581,17 @@ function Shop() {
                         <p className="text-xs text-muted-foreground">{b.description}</p>
                       </div>
                       {isOwned ? (
-                        <span className={`rounded-full px-2.5 py-1 text-xs font-black ${isActive ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"}`}>
+                        <span
+                          className={`rounded-full px-2.5 py-1 text-xs font-black ${isActive ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"}`}
+                        >
                           {isActive ? "사용중" : "보유중"}
                         </span>
                       ) : (
-                        <span className={`flex items-center gap-1 text-sm font-black ${canAfford ? "text-primary" : "text-muted-foreground"}`}>
-                          <Coins className="h-3.5 w-3.5" />{b.price.toLocaleString()}
+                        <span
+                          className={`flex items-center gap-1 text-sm font-black ${canAfford ? "text-primary" : "text-muted-foreground"}`}
+                        >
+                          <Coins className="h-3.5 w-3.5" />
+                          {b.price.toLocaleString()}
                         </span>
                       )}
                     </div>
@@ -435,10 +601,104 @@ function Shop() {
                       className={`mt-auto flex h-11 items-center justify-center gap-2 rounded-xl border-2 border-foreground text-sm font-black transition-transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-40 disabled:hover:translate-y-0 ${isActive ? "bg-secondary text-secondary-foreground" : "bg-primary text-primary-foreground"}`}
                       style={{ boxShadow: "var(--shadow-pop-sm)" }}
                     >
-                      {isActive ? <><Check className="h-4 w-4" strokeWidth={3} /> 적용됨</> : isOwned ? "사용하기" : canAfford ? <><Rocket className="h-4 w-4" /> 구매하기</> : <><Lock className="h-4 w-4" /> 포인트 부족</>}
+                      {isActive ? (
+                        <>
+                          <Check className="h-4 w-4" strokeWidth={3} /> 적용됨
+                        </>
+                      ) : isOwned ? (
+                        "사용하기"
+                      ) : canAfford ? (
+                        <>
+                          <Rocket className="h-4 w-4" /> 구매하기
+                        </>
+                      ) : (
+                        <>
+                          <Lock className="h-4 w-4" /> 포인트 부족
+                        </>
+                      )}
                     </button>
                   </div>
                 </div>
+              );
+            })}
+          </div>
+        )}
+
+        {tab === "items" && (
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+            {SHOP_ITEMS.map((item) => {
+              const quantity = itemInventory[item.id] ?? 0;
+              const canAfford = points >= item.price;
+              const active =
+                item.kind === "multiplier" ? multiplierUntil > Date.now() : mistakeGuard;
+              const remainingSeconds =
+                active && item.kind === "multiplier"
+                  ? Math.ceil((multiplierUntil - Date.now()) / 1000)
+                  : 0;
+              return (
+                <article
+                  key={item.id}
+                  className={`flex flex-col overflow-hidden rounded-3xl border-2 border-foreground bg-card ${justBought === item.id ? "scale-[0.98]" : ""}`}
+                  style={{ boxShadow: "var(--shadow-pop-sm)" }}
+                >
+                  <div className="flex min-h-36 items-center justify-center gap-4 border-b-2 border-foreground bg-gradient-to-br from-violet-100 to-sky-100 p-6">
+                    <span className="text-6xl" aria-hidden="true">
+                      {item.emoji}
+                    </span>
+                    <div>
+                      <h2 className="text-xl font-black">{item.name}</h2>
+                      <p className="mt-1 max-w-xs text-sm font-medium text-muted-foreground">
+                        {item.description}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex flex-1 flex-col gap-4 p-5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-bold text-muted-foreground">가방 보유량</span>
+                      <span className="rounded-full bg-secondary px-3 py-1 text-sm font-black text-secondary-foreground">
+                        {quantity}개
+                      </span>
+                    </div>
+                    {active && (
+                      <div
+                        className="flex items-center gap-2 rounded-xl bg-primary/10 px-3 py-2 text-sm font-bold text-primary"
+                        role="status"
+                      >
+                        {item.kind === "multiplier" ? (
+                          <Timer className="h-4 w-4" />
+                        ) : (
+                          <ShieldCheck className="h-4 w-4" />
+                        )}
+                        {item.kind === "multiplier"
+                          ? `활성화됨 · ${remainingSeconds}초 남음`
+                          : "활성화됨 · 다음 오답 1회 방어"}
+                      </div>
+                    )}
+                    <div className="mt-auto flex flex-col gap-2 sm:flex-row">
+                      <button
+                        onClick={() => activateItem(item.id)}
+                        disabled={quantity === 0 || (item.kind === "mistake_guard" && active)}
+                        className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border-2 border-foreground bg-secondary text-sm font-black text-secondary-foreground transition-transform hover:-translate-y-0.5 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0"
+                        style={{ boxShadow: "var(--shadow-pop-sm)" }}
+                      >
+                        {item.kind === "multiplier" ? (
+                          <Timer className="h-4 w-4" />
+                        ) : (
+                          <ShieldCheck className="h-4 w-4" />
+                        )}
+                        {item.kind === "mistake_guard" && active ? "효과 사용 중" : "사용하기"}
+                      </button>
+                      <button
+                        onClick={() => buyItem(item.id, item.price)}
+                        disabled={!canAfford}
+                        className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border-2 border-foreground bg-primary text-sm font-black text-primary-foreground transition-transform hover:-translate-y-0.5 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0"
+                        style={{ boxShadow: "var(--shadow-pop-sm)" }}
+                      >
+                        <Coins className="h-4 w-4" /> 구매 · {item.price.toLocaleString()} P
+                      </button>
+                    </div>
+                  </div>
+                </article>
               );
             })}
           </div>
@@ -449,31 +709,31 @@ function Shop() {
 }
 
 const EFFECT_BG: Record<string, string> = {
-  none:      "bg-muted",
-  confetti:  "bg-gradient-to-br from-pink-100 to-yellow-100",
-  coins:     "bg-gradient-to-br from-yellow-100 to-amber-100",
-  stars:     "bg-gradient-to-br from-yellow-50 to-amber-100",
-  hearts:    "bg-gradient-to-br from-pink-100 to-rose-100",
+  none: "bg-muted",
+  confetti: "bg-gradient-to-br from-pink-100 to-yellow-100",
+  coins: "bg-gradient-to-br from-yellow-100 to-amber-100",
+  stars: "bg-gradient-to-br from-yellow-50 to-amber-100",
+  hearts: "bg-gradient-to-br from-pink-100 to-rose-100",
   lightning: "bg-gradient-to-br from-yellow-100 to-orange-100",
-  sakura:    "bg-gradient-to-br from-pink-50 to-pink-200",
+  sakura: "bg-gradient-to-br from-pink-50 to-pink-200",
   fireworks: "bg-gradient-to-br from-indigo-100 to-purple-100",
-  snow:      "bg-gradient-to-br from-blue-50 to-cyan-100",
+  snow: "bg-gradient-to-br from-blue-50 to-cyan-100",
   butterfly: "bg-gradient-to-br from-purple-50 to-pink-100",
-  party:     "bg-gradient-to-br from-red-100 via-yellow-100 to-green-100",
-  diamond:   "bg-gradient-to-br from-cyan-50 to-blue-100",
-  rainbow:   "bg-gradient-to-br from-red-100 via-yellow-100 to-blue-100",
+  party: "bg-gradient-to-br from-red-100 via-yellow-100 to-green-100",
+  diamond: "bg-gradient-to-br from-cyan-50 to-blue-100",
+  rainbow: "bg-gradient-to-br from-red-100 via-yellow-100 to-blue-100",
 };
 
 const BOOSTER_BG: Record<string, string> = {
-  x1:     "bg-gradient-to-br from-zinc-100 to-zinc-200",
-  x1_25:  "bg-gradient-to-br from-sky-50 to-blue-100",
-  x1_5:   "bg-gradient-to-br from-amber-100 to-yellow-200",
-  x1_75:  "bg-gradient-to-br from-yellow-100 to-orange-200",
-  x2:     "bg-gradient-to-br from-orange-100 to-red-200",
-  x2_5:   "bg-gradient-to-br from-red-100 to-orange-300",
-  x3:     "bg-gradient-to-br from-yellow-200 to-amber-300",
-  x4:     "bg-gradient-to-br from-amber-200 to-yellow-400",
-  x5:     "bg-gradient-to-br from-rose-100 to-red-300",
+  x1: "bg-gradient-to-br from-zinc-100 to-zinc-200",
+  x1_25: "bg-gradient-to-br from-sky-50 to-blue-100",
+  x1_5: "bg-gradient-to-br from-amber-100 to-yellow-200",
+  x1_75: "bg-gradient-to-br from-yellow-100 to-orange-200",
+  x2: "bg-gradient-to-br from-orange-100 to-red-200",
+  x2_5: "bg-gradient-to-br from-red-100 to-orange-300",
+  x3: "bg-gradient-to-br from-yellow-200 to-amber-300",
+  x4: "bg-gradient-to-br from-amber-200 to-yellow-400",
+  x5: "bg-gradient-to-br from-rose-100 to-red-300",
 };
 
 function EmptyState() {
