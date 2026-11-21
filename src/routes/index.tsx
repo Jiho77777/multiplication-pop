@@ -1,6 +1,17 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { Home, Sparkles, Dice5, Coins, Check, X, ShoppingBag, RotateCcw } from "lucide-react";
+import {
+  Home,
+  Sparkles,
+  Dice5,
+  Coins,
+  Check,
+  X,
+  ShoppingBag,
+  RotateCcw,
+  FlaskConical,
+  ShieldCheck,
+} from "lucide-react";
 import {
   SKINS,
   DEFAULT_SKIN_ID,
@@ -10,15 +21,30 @@ import {
   saveActive,
   saveOwned,
 } from "@/lib/skins";
-import { loadActiveEffect, saveActiveEffect, saveOwnedEffects, DEFAULT_EFFECT_ID } from "@/lib/effects";
-import { BOOSTERS, loadActiveBooster, saveActiveBooster, saveOwnedBoosters, DEFAULT_BOOSTER_ID } from "@/lib/boosters";
+import {
+  loadActiveEffect,
+  saveActiveEffect,
+  saveOwnedEffects,
+  DEFAULT_EFFECT_ID,
+} from "@/lib/effects";
+import {
+  BOOSTERS,
+  loadActiveBooster,
+  saveActiveBooster,
+  saveOwnedBoosters,
+  DEFAULT_BOOSTER_ID,
+} from "@/lib/boosters";
+import { loadMultiplierUntil, loadMistakeGuard, saveMistakeGuard } from "@/lib/items";
 import { CorrectEffect } from "@/components/CorrectEffect";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "구구단 챌린지" },
-      { name: "description", content: "룰렛으로 랜덤 구구단 문제를 풀고 포인트를 모아 스킨을 사보세요." },
+      {
+        name: "description",
+        content: "룰렛으로 랜덤 구구단 문제를 풀고 포인트를 모아 스킨을 사보세요.",
+      },
     ],
   }),
   component: Index,
@@ -34,6 +60,9 @@ function Index() {
   const [activeSkin, setActiveSkin] = useState(DEFAULT_SKIN_ID);
   const [activeEffect, setActiveEffect] = useState("none");
   const [activeBooster, setActiveBooster] = useState(DEFAULT_BOOSTER_ID);
+  const [multiplierUntil, setMultiplierUntil] = useState(0);
+  const [mistakeGuard, setMistakeGuard] = useState(false);
+  const [protectedWrong, setProtectedWrong] = useState(false);
   const [effectTrigger, setEffectTrigger] = useState(0);
   const [spinning, setSpinning] = useState(false);
   const [spinA, setSpinA] = useState(2);
@@ -47,6 +76,10 @@ function Index() {
     setActiveSkin(loadActive());
     setActiveEffect(loadActiveEffect());
     setActiveBooster(loadActiveBooster());
+    setMultiplierUntil(loadMultiplierUntil());
+    setMistakeGuard(loadMistakeGuard());
+    const timer = window.setInterval(() => setMultiplierUntil(loadMultiplierUntil()), 1000);
+    return () => window.clearInterval(timer);
   }, []);
 
   const skin = SKINS.find((s) => s.id === activeSkin) ?? SKINS[0];
@@ -54,6 +87,7 @@ function Index() {
   const generate = () => {
     if (spinning) return;
     setVerdict(null);
+    setProtectedWrong(false);
     setAnswer("");
     setSpinning(true);
     const a = Math.floor(Math.random() * 10) + 2;
@@ -83,23 +117,34 @@ function Index() {
     tick();
   };
 
+  const markWrong = () => {
+    setVerdict("wrong");
+    setProtectedWrong(loadMistakeGuard());
+    if (loadMistakeGuard()) {
+      saveMistakeGuard(false);
+      setMistakeGuard(false);
+      return;
+    }
+    const newPts = Math.max(0, points - 50);
+    setPoints(newPts);
+    savePoints(newPts);
+  };
+
   const submit = () => {
     if (!problem || spinning || verdict) return;
     const val = Number(answer);
     if (!Number.isFinite(val) || answer.trim() === "") return;
     if (val === problem.a * problem.b) {
       setVerdict("correct");
-      const multiplier = BOOSTERS.find((b) => b.id === activeBooster)?.multiplier ?? 1;
-      const earned = Math.round(100 * multiplier);
+      const boosterMultiplier = BOOSTERS.find((b) => b.id === activeBooster)?.multiplier ?? 1;
+      const potionMultiplier = loadMultiplierUntil() > Date.now() ? 1.5 : 1;
+      const earned = Math.round(100 * boosterMultiplier * potionMultiplier);
       const newPts = points + earned;
       setPoints(newPts);
       savePoints(newPts);
       setEffectTrigger((n) => n + 1);
     } else {
-      setVerdict("wrong");
-      const newPts = Math.max(0, points - 50);
-      setPoints(newPts);
-      savePoints(newPts);
+      markWrong();
     }
   };
 
@@ -174,11 +219,27 @@ function Index() {
             className="flex h-10 items-center gap-1 rounded-full border-2 border-foreground bg-secondary px-4 text-sm font-bold text-secondary-foreground transition-transform hover:-translate-y-0.5 active:translate-y-0"
             style={{ boxShadow: "var(--shadow-pop-sm)" }}
           >
-            <ShoppingBag className="h-4 w-4" />
-            숍
+            <ShoppingBag className="h-4 w-4" />숍
           </Link>
         </div>
       </header>
+
+      {(multiplierUntil > Date.now() || mistakeGuard) && (
+        <div className="mt-4 flex flex-wrap justify-center gap-2" aria-live="polite">
+          {multiplierUntil > Date.now() && (
+            <div className="flex items-center gap-2 rounded-full border-2 border-foreground bg-card px-4 py-2 text-sm font-bold">
+              <FlaskConical className="h-4 w-4 text-primary" />
+              정답 포인트 1.5배 · {Math.ceil((multiplierUntil - Date.now()) / 1000)}초
+            </div>
+          )}
+          {mistakeGuard && (
+            <div className="flex items-center gap-2 rounded-full border-2 border-foreground bg-card px-4 py-2 text-sm font-bold">
+              <ShieldCheck className="h-4 w-4 text-primary" />
+              다음 오답 1회 방어
+            </div>
+          )}
+        </div>
+      )}
 
       <main className="flex flex-1 flex-col items-center justify-center gap-10">
         <div className="text-center">
@@ -205,7 +266,15 @@ function Index() {
             {problem || spinning ? (
               <>
                 <p className="mb-6 text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                  {spinning ? "🎰 룰렛 돌리는 중..." : verdict === "correct" ? `정답! +${Math.round(100 * (BOOSTERS.find((b) => b.id === activeBooster)?.multiplier ?? 1))}P` : verdict === "wrong" ? `아쉬워요! 정답은 ${problem!.a * problem!.b}` : "문제"}
+                  {spinning
+                    ? "🎰 룰렛 돌리는 중..."
+                    : verdict === "correct"
+                      ? `정답! +${Math.round(100 * (BOOSTERS.find((b) => b.id === activeBooster)?.multiplier ?? 1) * (multiplierUntil > Date.now() ? 1.5 : 1))}P`
+                      : verdict === "wrong"
+                        ? protectedWrong
+                          ? `실수 방지 물약 발동! 정답은 ${problem!.a * problem!.b}`
+                          : `아쉬워요! 정답은 ${problem!.a * problem!.b}`
+                        : "문제"}
                 </p>
                 <div className="flex flex-wrap items-center justify-center gap-4 text-7xl font-black leading-none md:text-8xl">
                   <span
@@ -217,7 +286,9 @@ function Index() {
                   <span className="text-primary">×</span>
                   <span
                     className={`inline-block tabular-nums ${spinning ? "animate-bounce" : ""}`}
-                    style={spinning ? { animationDuration: "0.25s", animationDelay: "0.1s" } : undefined}
+                    style={
+                      spinning ? { animationDuration: "0.25s", animationDelay: "0.1s" } : undefined
+                    }
                   >
                     {spinning ? spinB : problem!.b}
                   </span>
@@ -240,7 +311,8 @@ function Index() {
                       value={answer}
                       onChange={(e) => setAnswer(e.target.value)}
                       onKeyDown={(e) => {
-                        if (e.key !== "Enter" || e.nativeEvent.isComposing || e.keyCode === 229) return;
+                        if (e.key !== "Enter" || e.nativeEvent.isComposing || e.keyCode === 229)
+                          return;
                         if (verdict === "correct") generate();
                         else if (verdict === null) submit();
                       }}
@@ -262,10 +334,7 @@ function Index() {
                       <button
                         onClick={() => {
                           if (verdict) return;
-                          setVerdict("wrong");
-                          const newPts = Math.max(0, points - 50);
-                          setPoints(newPts);
-                          savePoints(newPts);
+                          markWrong();
                         }}
                         disabled={verdict !== null}
                         aria-label="포기"
